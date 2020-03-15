@@ -14,7 +14,8 @@ def main(files_to_ignore):
     if not gitignore.is_file():
         sys.exit(term.red(f'{gitignore.absolute()} is not file'))
     paths = []
-    files = git.statusfiles()
+    status = git.status()
+    files = status.files
     for f in files_to_ignore:
         if isinstance(f, int) or f.isdigit():
             try:

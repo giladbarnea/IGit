@@ -10,7 +10,7 @@ from mytool import git
 @click.command()
 @click.argument('branch')
 def main(branch):
-    status = git.shortstatus()
+    status = git.status().status
     if status:
         if not util.ask('Uncommitted changes, continue?'):
             sys.exit('aborting')
@@ -23,7 +23,10 @@ def main(branch):
     if branch not in branches:
         print(term.warn(f"didn't find {branch} in branches"))
         branch = git.branch.search(branch, branches)
-    util.tryrun(f'git checkout {branch}', f'git pull')
+    if not branch:
+        sys.exit(term.red(f"Couldn't find branch"))
+    util.tryrun(f'git checkout {branch}')
+    git.pull()
 
 
 if __name__ == '__main__':

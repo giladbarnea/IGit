@@ -1,14 +1,14 @@
 #!/usr/bin/env python3.7
 
 
-from mytool import util, term, git
+from mytool import util, term
 import sys
 import os
 from mytool import git
 
 
 def main():
-    status = git.shortstatus()
+    status = git.status().status
     if status:
         sys.exit(term.red('Uncommitted changes, aborting'))
     versionbranch = git.branch.version()

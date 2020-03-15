@@ -1,10 +1,9 @@
 #!/usr/bin/env python3.7
-from mytool import util
 import click
 import sys
 import os
 
-from mytool import git
+from mytool import git, prompt, util
 
 
 @click.command()
@@ -17,11 +16,11 @@ def main(name):
         util.tryrun(f'git checkout {name}')
         return os.system('git pull')
     
-    status = git.shortstatus()
+    status = git.status().status
     stash = False
     if status:
         os.system('git status')
-        answer = util.ask('Uncommitted changes', 'stash => apply', 'continue checkout', 'quit')
+        answer = prompt.action('Uncommitted changes', 'stash => apply', 'just checkout', special_opts=True)
         if answer == 's':
             stash = True
             util.tryrun('git stash')

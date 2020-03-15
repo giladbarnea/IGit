@@ -11,7 +11,7 @@ from mytool import git
 @click.argument('oldname')
 @click.argument('newname')
 def main(oldname, newname):
-    status = git.shortstatus()
+    status = git.status().status
     if status:
         sys.exit(term.red('Uncommitted changes, aborting'))
     

@@ -5,7 +5,7 @@ import os
 import click
 from pathlib import Path
 
-from mytool import git
+from mytool import git, prompt
 from mytool.git.ignore import main as ignore
 
 
@@ -13,7 +13,8 @@ def verify_shebang(f: Path, lines):
     shebang = '#!/usr/bin/env python3.7'
     firstline = lines[0].splitlines()[0]
     if firstline != shebang:
-        answer = util.ask(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}'), put '{shebang}'?", 'add', 'continue', 'ignore', 'quit', 'debug')
+        # answer = util.ask(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}'), put '{shebang}'?", 'add', 'ignore', 'continue', 'debug', 'quit')
+        answer = prompt.action(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}'), put '{shebang}'?", 'add', 'ignore', special_opts=True)
         if answer == 'd':
             from pprint import pprint as pp
             from ipdb import set_trace
@@ -34,18 +35,18 @@ def handle_large_files(cwd, largepaths: Dict[Path, float]):
         if abspath.is_dir():
             stats += f' ({len(list(abspath.iterdir()))} sub items)'
         print(stats)
-    answer = util.ask('Choose:', 'continue', 'ignore', 'quit', 'debug')
+    answer = prompt.action('Choose:', 'ignore', special_opts=True)
     if answer == 'd':
         from pprint import pprint as pp
-        from pdbi import set_trace
+        from ipdb import set_trace
         import inspect
-        set_trace(inspect.currentframe())
+        set_trace(inspect.currentframe(), context=50)
     elif answer == 'i':
         ignore([str(p.relative_to(cwd)) for p in largepaths])
 
 
 def handle_empty_file(f):
-    answer = util.ask(f"{f} is new and has no content, what to do?", 'continue', 'ignore', 'quit', 'debug')
+    answer = util.ask(f"{f} is new and has no content, what to do?", 'ignore', 'continue', 'debug', 'quit')
     if answer == 'd':
         from pprint import pprint as pp
         from ipdb import set_trace
@@ -58,19 +59,18 @@ def handle_empty_file(f):
 @click.command()
 @click.argument('commitmsg', required=False)
 def main(commitmsg):
-    file_status_map = git.file_status_map()
-    files = list(file_status_map.keys())
-    if not files:
+    status = git.status()
+    if not status.files:
         util.ask('No files in status, just push?')
         return util.tryrun('git push')
     
     cwd = Path(os.getcwd())
     largepaths: Dict[Path, float] = {}
-    for f in files:
-        status = file_status_map[f]
-        if 'D' in status:
+    for f in status.files:
+        statuce = status.file_status_map[f]
+        if 'D' in statuce:
             continue
-        if ('A' in status
+        if ('A' in statuce
                 and f.suffix == '.py'
                 and not f.name.startswith('__')
                 and cwd == '/Users/gilad/Code/MyTool'):
@@ -93,14 +93,15 @@ def main(commitmsg):
     if largepaths:
         handle_large_files(cwd, largepaths)
     if not commitmsg:
-        if len(files) == 1:
-            commitmsg = files[0]
-        elif len(files) < 3:
-            commitmsg = ', '.join([f.name for f in files])
+        if len(status.files) == 1:
+            commitmsg = status.files[0]
+        elif len(status.files) < 3:
+            commitmsg = ', '.join([f.name for f in status.files])
         else:
-            commitmsg = util.removequotes(input('commit msg:\t'))
+            commitmsg = input('commit msg:\t')
+    commitmsg = util.removequotes(commitmsg)
     util.tryrun('git add .',
-                f'git commit -a -m "{commitmsg}"',
+                f'git commit -am "{commitmsg}"',
                 f'git push')
 
 
