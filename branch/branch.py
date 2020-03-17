@@ -27,6 +27,7 @@ class branchtree:
     def branches(self) -> dict:
         if not self._branches:
             if not self._fetched:
+                # TODO: something global
                 util.tryrun('git fetch --all', printout=False)
                 self._fetched = True
             lines = util.tryrun('git ls-remote --heads origin', printout=False).splitlines()
@@ -83,32 +84,3 @@ def _nearest_branch_alternative(branchstr, branches):
             bestbranch = b
             bestscore = score
     return bestbranch
-
-
-def search(keyword: str, branches: List[str] = None) -> str:
-    if not branches:
-        branches = getall()
-    choice = git.search(keyword, branches, criterion='substring')
-    return choice
-
-
-def getall() -> List[str]:
-    util.tryrun('git fetch --all', printout=False)
-    lines = util.tryrun('git ls-remote --heads origin', printout=False).splitlines()
-    return [s.partition('heads/')[2] for s in lines]
-
-
-def current() -> str:
-    return util.tryrun('git branch --show-current')
-
-
-def version(branches: List[str] = None) -> str:
-    verbranches = []
-    if not branches:
-        branches = getall()
-    for b in branches:
-        if re.fullmatch(r'recon-[\w\-_]*\d*(\.\d*){2,4}$', b):
-            verbranches.append(b)
-    if verbranches:
-        return verbranches[-1]
-    return ""

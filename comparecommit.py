@@ -8,8 +8,9 @@ import click
 @click.command()
 @click.argument("commit_index", required=False)
 def main(commit_index):
-    current = git.commit.current()
-    webbrowser.open(f"https://{git.repourl()}/branches/compare/{current}%0D{git.branch.current()}#diff")
+    btree = git.branch.branchtree()
+    current = git.commit.committree().current
+    webbrowser.open(f"https://{git.repourl()}/branches/compare/{current}%0D{btree.current}#diff")
 
 
 if __name__ == '__main__':

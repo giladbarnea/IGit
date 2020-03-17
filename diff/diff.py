@@ -7,10 +7,27 @@ from mytool import git
 import webbrowser
 
 
+def is_file(val):
+    pass
+
+
+def is_branch(val):
+    pass
+
+
+unrequired_opts = dict(default=None, required=False, show_default=True)
+
+
 @click.command()
-@click.argument('src', required=False)
-@click.argument('compareto', required=False)
-def main(src, compareto):
+@click.option('--branch', '-b', **unrequired_opts)
+@click.option('--files', '-f', **unrequired_opts)
+@click.option('--exclude', '-e', **unrequired_opts, default='.log')
+def main(branch, files, exclude):
+    # git diff origin/master -- . :(exclude)*.csv :(exclude)*.ipynb :(exclude)*.sql :!report_validators/*
+    # everything is space separated, like grepf.py
+    # TODO: in exclude, :!report_validators/* if dir else :!*.ipynb
+    #  same for files
+    #  option to view in web like comparebranch
     btree = git.branch.branchtree()
     branches = btree.branchnames
     versionbranch = btree.version

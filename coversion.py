@@ -11,7 +11,8 @@ def main():
     status = git.status().status
     if status:
         sys.exit(term.red('Uncommitted changes, aborting'))
-    versionbranch = git.branch.version()
+    btree = git.branch.branchtree()
+    versionbranch = btree.version
     if not versionbranch:
         print(term.warn("Couldn't find version branch"))
         if not util.ask('Checkout master?'):
@@ -20,7 +21,7 @@ def main():
     else:
         branch = versionbranch
     
-    currbranch = git.branch.current()
+    currbranch = btree.current
     
     if currbranch == branch:
         print(term.warn(f'Already on version branch: {branch}'))

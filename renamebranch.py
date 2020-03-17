@@ -14,8 +14,8 @@ def main(oldname, newname):
     status = git.status().status
     if status:
         sys.exit(term.red('Uncommitted changes, aborting'))
-    
-    branches = git.branch.getall()
+    btree = git.branch.branchtree()
+    branches = btree.branchnames
     if newname in branches:
         sys.exit(term.red(f'"{newname}" already exists'))
     if oldname not in branches:

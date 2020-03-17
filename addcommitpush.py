@@ -4,7 +4,7 @@ from mytool import term, util
 import os
 import click
 from pathlib import Path
-
+from pprint import pprint as pp
 from mytool import git, prompt
 from mytool.git.ignore import main as ignore
 
@@ -16,10 +16,10 @@ def verify_shebang(f: Path, lines):
         # answer = util.ask(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}'), put '{shebang}'?", 'add', 'ignore', 'continue', 'debug', 'quit')
         answer = prompt.action(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}'), put '{shebang}'?", 'add', 'ignore', special_opts=True)
         if answer == 'd':
-            from pprint import pprint as pp
+            
             from ipdb import set_trace
             import inspect
-            set_trace(inspect.currentframe(), context=30)
+            set_trace(inspect.currentframe(), context=50)
         elif answer == 'i':
             ignore([str(f)])
         elif answer == 'a':
@@ -37,7 +37,6 @@ def handle_large_files(cwd, largepaths: Dict[Path, float]):
         print(stats)
     answer = prompt.action('Choose:', 'ignore', special_opts=True)
     if answer == 'd':
-        from pprint import pprint as pp
         from ipdb import set_trace
         import inspect
         set_trace(inspect.currentframe(), context=50)
@@ -48,10 +47,9 @@ def handle_large_files(cwd, largepaths: Dict[Path, float]):
 def handle_empty_file(f):
     answer = util.ask(f"{f} is new and has no content, what to do?", 'ignore', 'continue', 'debug', 'quit')
     if answer == 'd':
-        from pprint import pprint as pp
         from ipdb import set_trace
         import inspect
-        set_trace(inspect.currentframe(), context=30)
+        set_trace(inspect.currentframe(), context=50)
     elif answer == 'i':
         ignore([str(f)])
 

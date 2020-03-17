@@ -3,3 +3,4 @@ from .commit import commit
 from .branch import branch
 from .status.status import status
 from .search.search import search, searchalt
+from .repo.repo import repo

@@ -9,7 +9,8 @@ from mytool import git, prompt, util
 @click.command()
 @click.argument('name')
 def main(name):
-    branches = git.branch.getall()
+    btree = git.branch.branchtree()
+    branches = btree.branchnames
     if name in branches:
         if not util.ask(f'"{name}" already exists, check it out?'):
             sys.exit()
@@ -29,7 +30,9 @@ def main(name):
     util.tryrun(f'git checkout -b {name}',
                 f'git push --set-upstream origin {name}')
     if stash:
-        util.tryrun('git stash apply', 'git push')
+        util.tryrun('git stash apply')
+        from .addcommitpush import main as addcommitpush
+        addcommitpush(f'new branch: {name}')
 
 
 if __name__ == '__main__':

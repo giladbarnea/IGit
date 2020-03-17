@@ -9,14 +9,15 @@ from mytool import git
 @click.command()
 @click.argument('name')
 def main(name):
-    branches = git.branch.getall()
+    btree = git.branch.branchtree()
+    branches = btree.branchnames
     if name not in branches:
         print(term.warn(f"didn't find {name} in branches"))
-        name = git.branch.search(name, branches)
-    if name == git.branch.current():
+        name = btree.search(name)
+    if name == btree.current:
         # TODO: gco - then continue
         sys.exit(term.red(f'"{name}" is current branch'))
-    if name == git.branch.version(branches):
+    if name == btree.version:
         if not util.ask(f'{name} is version branch, continue?'):
             sys.exit()
     util.tryrun(f'git branch -D {name}',

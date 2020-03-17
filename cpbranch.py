@@ -8,11 +8,12 @@ from mytool import git
 @click.command()
 @click.argument('branch', required=False)
 def main(branch):
+    btree = git.branch.branchtree()
     if branch:
         if util.ask('search?'):
-            branch = git.branch.search(branch)
+            branch = btree.search(branch)
     else:
-        branch = git.branch.current()
+        branch = btree.current
     util.clip_copy(branch)
 
 

@@ -14,15 +14,16 @@ def main(branch):
     if status:
         if not util.ask('Uncommitted changes, continue?'):
             sys.exit('aborting')
-    currbranch = git.branch.current()
+    btree = git.branch.branchtree()
+    currbranch = btree.current
     
     if currbranch == branch:
         sys.exit(term.warn(f'Already on {branch}'))
     
-    branches = git.branch.getall()
+    branches = btree.branchnames
     if branch not in branches:
         print(term.warn(f"didn't find {branch} in branches"))
-        branch = git.branch.search(branch, branches)
+        branch = btree.search(branch)
     if not branch:
         sys.exit(term.red(f"Couldn't find branch"))
     util.tryrun(f'git checkout {branch}')

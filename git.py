@@ -27,10 +27,6 @@ def repourl() -> str:
     return url
 
 
-def repo() -> str:
-    return repourl().split('/')[-1]
-
-
 def fetchall() -> str:
     return util.tryrun('git fetch --all')
 
