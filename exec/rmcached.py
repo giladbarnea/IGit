@@ -2,9 +2,8 @@
 import os
 import sys
 
-from mytool from util import termcolor
-from util import shell
-from mytool.util.misc import unquote
+from util import termcolor, shell
+from util.misc import unquote
 
 args = sys.argv[1:]
 cwd = os.getcwd()

@@ -4,7 +4,9 @@ import sys
 
 import click
 
+import git
 import prompt
+from status import Status
 from util import shell
 
 from branch import BranchTree
@@ -19,9 +21,9 @@ def main(name):
         if not prompt.ask(f'"{name}" already exists, check it out?'):
             sys.exit()
         shell.tryrun(f'git checkout {name}')
-        return os.system('git pull')
+        return git.pull()
     
-    status = git.status().status
+    status = Status()
     stash = False
     if status:
         os.system('git status')

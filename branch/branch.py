@@ -54,7 +54,7 @@ class BranchTree:
             _major = float(_verstr[:3])
             try:
                 _minor = float(_verstr[3:]) / 10
-            except ValueError as e:
+            except ValueError as ve:
                 _minor = 0
             _vernum = _major + _minor
             return _vernum

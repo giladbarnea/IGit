@@ -3,9 +3,8 @@ import sys
 
 import click
 
-from mytool import git
-from mytool import term, prompt
-from util import shell
+import prompt
+from util import shell, termcolor
 
 from branch import BranchTree
 
@@ -25,7 +24,7 @@ def main(name):
         if not prompt.ask(f'{name} is version branch, continue?'):
             sys.exit()
     shell.tryrun(f'git branch -D {name}',
-                f'git push origin --delete {name}')
+                 f'git push origin --delete {name}')
 
 
 if __name__ == '__main__':

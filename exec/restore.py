@@ -18,8 +18,8 @@ def main(index_or_substr):
             restoreall = True
         elif answer == 'c':
             status = Status()
-            answer = prompt.choose('which?', status.files, 'quit', allow_free_input=True)
-            if answer.isdigit():
+            key, choice = prompt.choose('which?', *status.files, 'quit', allow_free_input=True)
+            if key.isdigit():
                 restore = status.files[int(answer)]
             else:
                 restore = status.search(answer)

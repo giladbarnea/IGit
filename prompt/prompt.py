@@ -146,9 +146,7 @@ def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> AnswerTu
 
 
 def choose(prompt, *options, **kwargs):
-    """Presents `options` by *index*. Expects at least one option.
-
-    Returns index (str) or key (str) according to user choice."""
+    """Presents `options` by *index*. Expects at least one option."""
     # TODO: test if ok with 'yes'/'no/
     # * options
     options = Options(*options)
@@ -210,8 +208,8 @@ def action(question: str, *actions: str, **kwargs: Union[str, tuple, bool]) -> A
 
 
 def action(question, *actions, **kwargs):
-    """Presents `options` by *key*. Compared to `ask()`,
-    `action` can't be used to prompt for yes/no but instead prompts for strings.
+    """Presents `options` by *key*.
+    Compared to `ask()`, `action()` can't be used to prompt for yes/no but instead prompts for strings.
     Example::
 
         action('uncommitted changes', 'stash & apply', special_opts = True)

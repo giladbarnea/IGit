@@ -326,6 +326,10 @@ def italic(text, reset_normal: bool = True):
     return color(text, 'italic', reset='normal' if reset_normal is True else 'italic')
 
 
+def fix_internal_colors(m: re.Match):
+    return ''.join(m.groups()[0:2]) + m.groups()[-1] + ''.join(m.groups()[2:5]) + m.groups()[0] + ''.join(m.groups()[-2:])
+
+
 def color(text: any, *colors: Union[str, int], reset: Union[str, bool] = 'normal', debug=False):
     if debug:
         print(f'text: {text}', f'colors: {colors}', f'reset: {reset}')
@@ -359,8 +363,7 @@ def color(text: any, *colors: Union[str, int], reset: Union[str, bool] = 'normal
                 # [RED]bla[PURPLE]plurp[/PURPLE]bzorg[/RED] → [RED]bla[/RED][PURPLE]plurp[/PURPLE][RED]bzorg[/RED]
                 # text = re.sub(r'(?<=\033)(.*)(\[\d{,3}m)', lambda m: m.groups()[0] + f'[{start_code}m', text)
                 regex = r'(\033\[\d{,3}m)(.*)(\033\[\d{,3}m)(.*)(\033\[\d{,3}m)(.*)(\033\[\d{,3}m)'
-                repl = lambda m: ''.join(m.groups()[0:2]) + m.groups()[-1] + ''.join(m.groups()[2:5]) + m.groups()[0] + ''.join(m.groups()[-2:])
-                colored = re.sub(regex, repl, colored)
+                colored = re.sub(regex, fix_internal_colors, colored)
             except TypeError as e:
                 pass
         if debug:

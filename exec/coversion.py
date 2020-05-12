@@ -1,12 +1,11 @@
 #!/usr/bin/env python3.8
-import os
 import sys
 
+import git
 import prompt
+from branch import BranchTree
 from status import Status
 from util import shell, termcolor
-
-from branch import BranchTree
 
 
 def main():

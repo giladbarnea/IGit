@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.8
-import os
 import re
 import sys
 
@@ -44,3 +43,7 @@ def pull() -> int:
 def push() -> int:
     # TODO: understand how to get colors AND output
     return sp.call('sudo git push'.split())
+
+
+def status() -> int:
+    return sp.call('sudo git status'.split())

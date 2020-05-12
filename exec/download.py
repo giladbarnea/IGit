@@ -30,7 +30,7 @@ def main(_remote: str, _branch: str, _dest: str, _files: [str]):
         while not req.ok and '/' in _remote:
             _remote, _, _subdir = _remote.rpartition('/')
             err_msg = f'Couldnt download {_file}. status_code: {req.status_code}. url: {url}. Maybe {_subdir} is a subdir? Trying...'
-            print(termcolor.warn(err_msg))
+            print(termcolor.yellow(err_msg))
             url = f'https://raw.githubusercontent.com/{_remote}/{_branch}/{_subdir}/{_file}'
             req = requests.get(url)
         else:
@@ -41,7 +41,7 @@ def main(_remote: str, _branch: str, _dest: str, _files: [str]):
             try:
                 f.write(req.content.decode())
             except UnicodeDecodeError as ude:
-                print(termcolor.warn(f'Caught a UnicodeDecodeError when trying to {termcolor.italic("req.content.decode()")}'))
+                print(termcolor.yellow(f'Caught a UnicodeDecodeError when trying to {termcolor.italic("req.content.decode()")}'))
                 f.write(req.content)
         
         print(termcolor.green(f'Successfully downloaded {_file} to {savepath}.'))

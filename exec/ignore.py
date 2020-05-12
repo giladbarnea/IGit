@@ -1,15 +1,13 @@
 #!/usr/bin/env python3.8
-from typing import Union, List
+import sys
+from pathlib import Path
+from typing import List
 
 import click
-from util import termcolor
-
-import sys
 
 from status import Status
-from pathlib import Path
-
-from tipes import PathOrStr
+from util import termcolor
+from util.types import PathOrStr
 
 
 @click.command()
