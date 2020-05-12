@@ -90,7 +90,7 @@ def _get_is_maybe_fn(criterion: SearchCriteria) -> Callable[[str, str], bool]:
     return is_maybe
 
 
-def search_and_prompt(keyword: str, collection: List[str], criterion: SearchCriteria) -> Optional[str]:
+def search_and_prompt(keyword: str, collection: List[str], criterion: SearchCriteria = 'substring') -> Optional[str]:
     """Prompts to choose from each `maybes` set and returns the choice once made"""
     for maybes in iter_maybes(keyword, collection, criterion=criterion):
         choice = _choose_from_many(maybes)
@@ -99,7 +99,7 @@ def search_and_prompt(keyword: str, collection: List[str], criterion: SearchCrit
     return None
 
 
-def iter_maybes(keyword: str, collection: List[str], *extra_options, criterion: SearchCriteria) -> Generator[Tuple[List[str], bool], None, None]:
+def iter_maybes(keyword: str, collection: List[str], *extra_options, criterion: SearchCriteria = 'substring') -> Generator[Tuple[List[str], bool], None, None]:
     """Doesn't prompt of any kind. Yields a `[...], is_last` tuple."""
     is_maybe = _get_is_maybe_fn(criterion)
     

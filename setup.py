@@ -9,11 +9,11 @@ ok = input(f'found_packages:\n{repr(found_packages)}\ncontinue? y/n ').lower() =
 if not ok:
     sys.exit()
 setup(name='IGit',
-      version='1.0.0',
+      version='1.0.1',
       description='Like IPython, for Git',
       author='Gilad Barnea',
       author_email='giladbrn@gmail.com',
       packages=found_packages,
-      install_requires=['requests', 'click', 'fuzzysearch', 'ipdb'],
-      tests_require=['pytest', 'hypothesis', 'birdseye']
+      install_requires=['requests', 'click', 'fuzzysearch'],
+      tests_require=['pytest', 'hypothesis', 'birdseye', 'ipdb']
       )
