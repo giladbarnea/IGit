@@ -13,6 +13,7 @@ setup(name='IGit',
       description='Like IPython, for Git',
       author='Gilad Barnea',
       author_email='giladbrn@gmail.com',
+      
       packages=found_packages,
       install_requires=['requests', 'click', 'fuzzysearch'],
       tests_require=['pytest', 'hypothesis', 'birdseye', 'ipdb']
