@@ -1,0 +1,23 @@
+#!/usr/bin/env python3.8
+
+import subprocess as sp
+
+
+def fetchall() -> int:
+    return sp.call('sudo git fetch --all'.split())
+
+
+def pull() -> int:
+    # https://stackoverflow.com/questions/5136611/capture-stdout-from-a-script
+    # from IPython.utils.capture import capture_output
+    # with capture_output() as c: print('some output')
+    # TODO: understand how to get colors AND output
+    return sp.call('sudo git pull'.split())
+
+
+def push() -> int:
+    return sp.call('sudo git push'.split())
+
+
+def status() -> int:
+    return sp.call('sudo git status'.split())
