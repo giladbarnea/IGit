@@ -1,10 +1,10 @@
+import re
 from typing import List
 
-from mytool import util, git
-import re
+from util import shell
 
 
-class committree:
+class CommitTree:
     _current = ''
     _commits = dict()
     _commitnames = []
@@ -14,16 +14,16 @@ class committree:
     @property
     def current(self) -> str:
         if not self._current:
-            self._current = util.tryrun('git rev-parse HEAD')
+            self._current = shell.tryrun('git rev-parse HEAD')
         return self._current
     
     @property
     def commits(self) -> dict:
         if not self._commits:
             if not self._fetched:
-                util.tryrun('git fetch --all', printout=False)
+                shell.tryrun('git fetch --all', printout=False)
                 self._fetched = True
-            lines = util.tryrun('git log --pretty=oneline', printout=False).splitlines()
+            lines = shell.tryrun('git log --pretty=oneline', printout=False).splitlines()
             
             self._commits = dict(reversed(re.split(r' ', line, maxsplit=1)) for line in lines)
         return self._commits

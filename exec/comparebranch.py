@@ -1,17 +1,22 @@
-#!/usr/bin/env python3.7
-from mytool import term, util
-import click
+#!/usr/bin/env python3.8
 import sys
-
-from mytool import git
 import webbrowser
+
+import click
+
+import prompt
+from branch import BranchTree
+from repo import Repo
+from util import termcolor
 
 
 @click.command()
 @click.argument('src', required=False)
 @click.argument('compareto', required=False)
 def main(src, compareto):
-    btree = git.branch.branchtree()
+    # TODO: if either == '%version%
+    print(f'src: {src}', f'compareto: {compareto}')
+    btree = BranchTree()
     branches = btree.branchnames
     versionbranch = btree.version
     if not versionbranch:
@@ -23,24 +28,29 @@ def main(src, compareto):
         compareto = versionbranch
     
     elif src:  # specified src, compare current to it
-        compareto = src
         src = current
+        compareto = src
     
     if compareto not in branches:
-        print(term.warn(f"didn't find {compareto} in branches"))
+        print(termcolor.yellow(f"didn't find {compareto} in branches"))
         compareto = btree.search(compareto)
     
     if src == compareto:
         if src == 'master':
-            sys.exit(term.red('Already on master.'))
+            sys.exit(termcolor.red('Already on master.'))
         
         if src == versionbranch:  # neither is master
-            if not util.ask(f"You're already on version branch: {versionbranch}. Compare to master?"):
+            if not prompt.ask(f"You're already on version branch: {versionbranch}. Compare to master?"):
                 sys.exit()
             compareto = 'master'
         else:
-            sys.exit(term.red(f'src == compareto: {src}'))
-    webbrowser.open(f"https://{git.repourl()}/branches/compare/{src}%0D{compareto}#diff")
+            sys.exit(termcolor.red(f'src == compareto: {src}'))
+    repo = Repo()
+    if repo.host == 'bitbucket':
+        url = f"https://{repo.weburl}/branches/compare/{src}%0D{compareto}#diff"
+    else:
+        url = f"https://{repo.weburl}/compare/{src}..{compareto}"
+    webbrowser.open(url)
 
 
 if __name__ == '__main__':

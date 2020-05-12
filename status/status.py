@@ -1,22 +1,42 @@
-from mytool import util, term, git
-from typing import Tuple, List, Optional
-import re
+import os
 from pathlib import Path
+from typing import Tuple, List, Dict
+
+from util.types import PathOrStr
+from util import shell, termcolor
+import prompt
+from util.search import search_and_prompt
 
 
-class status:
+class Status:
     _status = ''
     _files = []
     _file_status_map = dict()
     
+    def __getitem__(self, item) -> List[PathOrStr]:
+        # TODO: account for deleted
+        try:
+            if ':' in item:
+                start, _, stop = item.partition(':')
+                index = slice(int(start), int(stop))
+                return self.files[index]
+            else:
+                index = int(item)
+                return [self.files[index]]
+        except ValueError as e:  # not an index
+            return [self.search(item)]
+    
+    def __bool__(self):
+        return bool(self.status)
+    
     @property
     def status(self) -> List[str]:
         if not self._status:
-            self._status = util.tryrun('git status -s', printout=False, printcmd=False).splitlines()
+            self._status = shell.tryrun('git status -s', printout=False, printcmd=False).splitlines()
         return self._status
     
     @property
-    def file_status_map(self):
+    def file_status_map(self) -> Dict[Path, str]:
         def _clean_shortstatus(_x) -> Tuple[Path, str]:
             _file, _status = _x[3:].replace('"', ''), _x[:3].strip()
             if 'R' in _status:
@@ -47,13 +67,15 @@ class status:
     
     def search(self, keyword: str) -> str:
         with_suffix = bool(Path(keyword).suffix)
+        with_slash = '/' in keyword
+        print(f'with_suffix: {with_suffix}', f'with_slash: {with_slash}')
         if with_suffix:
             files = self.files
         else:
             files = [f.with_suffix('') for f in self.files]
         """names = [f.name for f in files]
         ## Basenames
-        print(term.warn(f"looking in basenames {'with' if with_suffix else 'without'} suffixes..."))
+        print(termcolor.yellow(f"looking in basenames {'with' if with_suffix else 'without'} suffixes..."))
         try:
             choice = git.search(keyword, names, criterion='equals')
             if choice:
@@ -64,9 +86,15 @@ class status:
             # if duplicate options, continue to search in full paths"""
         
         ## Full Paths
-        print(term.warn(f"looking in full paths {'with' if with_suffix else 'without'} suffixes..."))
-        choice = git.search(keyword, [str(f) for f in self.files], criterion='equals')
+        
+        print(termcolor.yellow(f"looking in full paths {'with' if with_suffix else 'without'} suffixes..."))
+        for f in files:
+            # TODO: integrate into git.search somehow
+            for i, part in enumerate(f.parts):
+                if part == keyword:
+                    return Path(os.path.join(*f.parts[0:i + 1]))
+        choice = search_and_prompt(keyword, [str(f) for f in files], criterion='equals')
         if choice:
             return choice
-        print(term.red(f"'{keyword}' didn't match anything :/"))
-        util.ask('debug?', 'debug', 'quit')
+        print(termcolor.red(f"'{keyword}' didn't match anything :/"))
+        prompt.generic('debug?', special_opts=('debug', 'quit'))

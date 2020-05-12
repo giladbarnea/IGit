@@ -1,11 +1,10 @@
 import re
-
 import sys
 
-from mytool import util, term
+from util import shell, termcolor
 
 
-class repo:
+class Repo:
     _url = ''
     _weburl = ''
     _host = ''
@@ -14,7 +13,7 @@ class repo:
     @property
     def url(self) -> str:
         if not self._url:
-            self._url = util.tryrun('git remote get-url origin', printout=False, printcmd=False)
+            self._url = shell.tryrun('git remote get-url origin', printout=False, printcmd=False)
         return self._url
     
     @property
@@ -39,11 +38,11 @@ class repo:
             elif self.host == 'github':
                 regex = r'github.com.*(?=\.git)\b'
             else:
-                print(term.warn(f'repo.weburl unspecific self.host: {self.host}'))
+                print(termcolor.yellow(f'repo.weburl unspecific self.host: {self.host}'))
                 regex = fr'{self.host}.com.*(?=\.git)\b'
             match = re.search(regex, self.url)
             if not match:
-                sys.exit(term.red(f"regex: {regex} no match to self.url: '{self.url}'"))
+                sys.exit(termcolor.red(f"regex: {regex} no match to self.url: '{self.url}'"))
             weburl = match.group()
             if isbitbucket and ':cashdash' in self.url:
                 weburl = weburl.replace(':cashdash', '/cashdash')
@@ -56,6 +55,6 @@ class repo:
             regex = r'(?<=/)[\w\d.-]*(?=\.git)'
             match = re.search(regex, self.url)
             if not match:
-                sys.exit(term.red(f"regex: {regex} no match to self.url: '{self.url}'"))
+                sys.exit(termcolor.red(f"regex: {regex} no match to self.url: '{self.url}'"))
             self._name = match.group()
         return self._name

@@ -1,8 +1,11 @@
-#!/usr/bin/env python3.7
-from mytool import git, util
+#!/usr/bin/env python3.8
 import webbrowser
+
 import click
-import requests
+
+import prompt
+from branch import BranchTree
+from repo import Repo
 
 
 def url_subdomain(repo):
@@ -17,15 +20,15 @@ def url_subdomain(repo):
 @click.command()
 @click.option('--branch', '-b', required=False)
 def main(branch):
-    repo = git.repo()
-    btree = git.branch.branchtree()
+    repo = Repo()
+    btree = BranchTree()
     subdomain = url_subdomain(repo)
     url = f'https://{repo.weburl}/{subdomain}'
     if branch:
         # res = requests.get(f'{url}/{branch}')
         # if not res.ok:
         if branch not in btree.branchnames:
-            if util.ask(f'"{url}/{branch}" failed, search?', 'yes', 'no (open with current)', 'quit'):
+            if prompt.ask(f'"{branch}" not in branches, search?', special_opts=True):
                 branch = btree.search(branch)
             else:
                 branch = btree.current

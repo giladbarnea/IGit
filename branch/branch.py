@@ -1,10 +1,12 @@
-from typing import List, Tuple
-
-from mytool import util, git, term
 import re
+from typing import List, Dict
+
+from util.search import search_and_prompt
+
+from util import shell, termcolor
 
 
-class branchtree:
+class BranchTree:
     """Get branch sha:
     git ls-remote --heads origin | grep dragon
     
@@ -20,7 +22,7 @@ class branchtree:
     @property
     def current(self) -> str:
         if not self._current:
-            self._current = util.tryrun('git branch --show-current')
+            self._current = shell.tryrun('git branch --show-current')
         return self._current
     
     @property
@@ -28,9 +30,9 @@ class branchtree:
         if not self._branches:
             if not self._fetched:
                 # TODO: something global
-                util.tryrun('git fetch --all', printout=False)
+                shell.tryrun('git fetch --all', printout=False)
                 self._fetched = True
-            lines = util.tryrun('git ls-remote --heads origin', printout=False).splitlines()
+            lines = shell.tryrun('git ls-remote --heads origin', printout=False).splitlines()
             self._branches = dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
         return self._branches
     
@@ -48,6 +50,15 @@ class branchtree:
     
     @property
     def version(self) -> str:
+        def _verstr_to_vernum(_verstr: str) -> float:
+            _major = float(_verstr[:3])
+            try:
+                _minor = float(_verstr[3:]) / 10
+            except ValueError as e:
+                _minor = 0
+            _vernum = _major + _minor
+            return _vernum
+        
         if not self._version:
             verbranches = []
             
@@ -55,16 +66,26 @@ class branchtree:
                 if re.fullmatch(r'recon-[\w\-_]*\d*(\.\d*){2,4}$', b):
                     verbranches.append(b)
             if verbranches:
-                self._version = verbranches[-1]
+                max_vernum: Dict[float, int] = {}
+                for i, verbrch in enumerate(verbranches):
+                    try:
+                        verstr: str = re.search(r'(\d*(\.\d*){2,4}$)', verbrch).groups()[0].replace('.', '')
+                        vernum = _verstr_to_vernum(verstr)
+                        if not max_vernum or next(iter(max_vernum)) < vernum:
+                            max_vernum = {vernum: i}
+                    except Exception as e:
+                        continue
+                if not max_vernum:
+                    self._version = verbranches[-1]
+                else:
+                    self._version = verbranches[next(iter(max_vernum.values()))]
         return self._version
     
     def search(self, keyword: str) -> str:
         # TODO: option to get branch date if ambiguous etc
-        for choice in git.searchalt(keyword, self.branchnames, criterion='substring'):
-            print(term.green(f'choice: {choice}'))
-            if not choice:
-                continue
-            return choice
+        choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
+        print(termcolor.green(f'choice: {choice}'))
+        return choice
 
 
 def _nearest_branch_alternative(branchstr, branches):

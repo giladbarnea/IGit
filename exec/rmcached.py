@@ -1,8 +1,10 @@
-#!/usr/bin/env python3.7
-from mytool import term, util
-import sys
+#!/usr/bin/env python3.8
 import os
-import re
+import sys
+
+from mytool from util import termcolor
+from util import shell
+from mytool.util.misc import unquote
 
 args = sys.argv[1:]
 cwd = os.getcwd()
@@ -13,10 +15,10 @@ if not args:
 cmds = []
 basenames = []
 for a in args:
-    a = util.removequotes(a)
+    a = unquote(a)
     abspath = os.path.join(cwd, a)
     if not os.path.exists(abspath):
-        print(f"{term.warn(abspath)} does not exist, skipping")
+        print(f"{termcolor.yellow(abspath)} does not exist, skipping")
         continue
     
     # exists
@@ -25,7 +27,7 @@ for a in args:
     elif os.path.isdir(abspath):
         cmds.append(f'git rm -r --cached {a}')
     else:
-        print(f'{term.warn(abspath)} is not file nor dir, skipping (weird)')
+        print(f'{termcolor.yellow(abspath)} is not file nor dir, skipping (weird)')
         continue
     
     # exists and is file or dir
@@ -33,10 +35,10 @@ for a in args:
     basenames.append(os.path.basename(a))
 
 if not cmds:
-    sys.exit(term.red('no files to rm, exiting'))
+    sys.exit(termcolor.red('no files to rm, exiting'))
 
 for c in cmds:
-    util.tryrun(c, abortonfail=False)
+    shell.tryrun(c, abortonfail=False)
 
 commitmsg = f'Removed from cache: ' + ', '.join(basenames)
-util.tryrun(f'git commit -a -m "{commitmsg}"', 'git push')
+shell.tryrun(f'git commit -a -m "{commitmsg}"')

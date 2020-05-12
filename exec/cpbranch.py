@@ -1,20 +1,21 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3.8
 import click
 
-from mytool import util
-from mytool import git
+from branch import BranchTree
+import prompt
+from util.misc import clip_copy
 
 
 @click.command()
 @click.argument('branch', required=False)
 def main(branch):
-    btree = git.branch.branchtree()
+    btree = BranchTree()
     if branch:
-        if util.ask('search?'):
+        if prompt.ask('search?'):
             branch = btree.search(branch)
     else:
         branch = btree.current
-    util.clip_copy(branch)
+    clip_copy(branch)
 
 
 if __name__ == '__main__':

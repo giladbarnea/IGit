@@ -1,9 +1,10 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3.8
 import click
 
-from mytool import util
-from mytool import git
 import os
+
+import prompt
+from status import Status
 
 
 @click.command()
@@ -11,12 +12,13 @@ import os
 def main(index_or_substr):
     restoreall = False
     if not index_or_substr:
-        answer = util.ask('restore all files?', 'yes', 'choose', 'quit')
+        os.system('git status -s')
+        answer = prompt.action('What to do?', 'restore all file', C='choose files', special_opts=True)
         if answer == 'y':
             restoreall = True
         elif answer == 'c':
-            status = git.status()
-            answer = util.choose('which?', status.files, 'quit', allow_free_input=True)
+            status = Status()
+            answer = prompt.choose('which?', status.files, 'quit', allow_free_input=True)
             if answer.isdigit():
                 restore = status.files[int(answer)]
             else:
