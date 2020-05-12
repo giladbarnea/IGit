@@ -41,7 +41,6 @@ def pull() -> int:
 
 
 def push() -> int:
-    # TODO: understand how to get colors AND output
     return sp.call('sudo git push'.split())
 
 
