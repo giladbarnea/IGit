@@ -100,8 +100,8 @@ def main(commitmsg: str):
         else:
             commitmsg = input('commit msg:\t')
     commitmsg = misc.unquote(commitmsg)
-    shell.tryrun('sudo git add .',
-                 f'sudo git commit -am "{commitmsg}"')
+    shell.tryrun('git add .',
+                 f'git commit -am "{commitmsg}"')
     git.push()
 
 

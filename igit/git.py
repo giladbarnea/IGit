@@ -4,7 +4,7 @@ import subprocess as sp
 
 
 def fetchall() -> int:
-    return sp.call('sudo git fetch --all'.split())
+    return sp.call('git fetch --all'.split())
 
 
 def pull() -> int:
@@ -12,12 +12,12 @@ def pull() -> int:
     # from IPython.utils.capture import capture_output
     # with capture_output() as c: print('some output')
     # TODO: understand how to get colors AND output
-    return sp.call('sudo git pull'.split())
+    return sp.call('git pull'.split())
 
 
 def push() -> int:
-    return sp.call('sudo git push'.split())
+    return sp.call('git push'.split())
 
 
 def status() -> int:
-    return sp.call('sudo git status'.split())
+    return sp.call('git status'.split())
