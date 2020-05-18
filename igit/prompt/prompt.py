@@ -152,24 +152,23 @@ def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> AnswerTu
 
 
 def choose(prompt, *options, **kwargs):
-    """Presents `options` by *index*. Expects at least one option.
-
-    Returns index (str) or key (str) according to user choice."""
+    """Presents `options` by *index*. Expects at least one option"""
     # TODO: test if ok with 'yes'/'no/
     # * options
-    options = Options(*options)
-    
-    # *  special options
+    standard_opts, special_opts = partition(lambda o: o in Special.full_names(), options)
+    options = Options(*standard_opts)
     if 'special_opts' in kwargs:
+        if special_opts:
+            raise DeveloperError(f"special_opts was passed both as positional args and kw args")
         options.set_special_options(kwargs.pop('special_opts'))
-    
-    # * allow_free_input
+    else:
+        options.set_special_options(special_opts)
     try:
         allow_free_input = kwargs.pop('allow_free_input')
     except KeyError:
         allow_free_input = False
     
-    # *  keyword-actions
+    # *  keyword-choices
     options.set_kw_options(**kwargs)
     return Choice(prompt, options, allow_free_input=allow_free_input).answer
 
