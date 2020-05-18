@@ -26,6 +26,8 @@ class Prompt:
     
     @staticmethod
     def get_answer(question: str, options: Options, *, allow_free_input=False) -> Tuple[Any, Any]:
+        if allow_free_input:
+            question += '\n\t(free input allowed)\t'
         ans_key = _input(question)
         items = options.items()
         if ans_key not in items:
@@ -41,7 +43,7 @@ class Prompt:
         answer = ans_key, ans_value
         return answer
     
-    def __init__(self, question: str, options: Options, allow_free_input=False):
+    def __init__(self, question: str, options: Options, *, allow_free_input=False):
         self.answer = None
         # don't set(options) because set isn't ordered
         
@@ -90,6 +92,8 @@ class Choice(Prompt):
     
     @staticmethod
     def get_answer(question: str, options: Options, *, allow_free_input=False) -> Tuple[Any, Any]:
+        if allow_free_input:
+            question += '\n\t(free input allowed)\t'
         ans_key = _input(question)
         indexeditems = options.indexeditems()
         if ans_key not in indexeditems:
@@ -105,26 +109,28 @@ class Choice(Prompt):
         answer = ans_key, ans_value
         return answer
     
-    def __init__(self, question: str, options: Options, allow_free_input=False):
+    def __init__(self, question: str, options: Options, *, allow_free_input=False):
         if not options:
             raise TypeError(f'At least one option is required when using Choice (contrary to Prompt)')
         super().__init__(question, options, allow_free_input=allow_free_input)
 
 
 def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]) -> Prompt:
-    """Simplest prompt. `options` are optional, `kwargs` are optional.
+    """Most permissive, a simple wrapper for Prompt ctor. `options` are optional, `kwargs` are optional.
+    The only function that returns a Prompt object.
     Examples::
 
-        generic('Something bad happened', 'debug', 'quit') → [d], [q]"""
+        generic('This and that, continue?', 'yes', 'quit') → [y], [q]
+    """
     
     # TODO: consider make Options ctor be able to handle Options('continue')
-    special_opts, standard_opts = partition(lambda o: o in Special.full_names(), options)
+    standard_opts, special_opts = partition(lambda o: o in Special.full_names(), options)
     options = Options(*standard_opts)
     if 'special_opts' in kwargs:
         if special_opts:
-            raise DeveloperError(f"special opts found both in options and kwargs")
+            raise DeveloperError(f"special_opts was passed both as positional args and kw args")
         options.set_special_options(kwargs.pop('special_opts'))
-    elif special_opts:
+    else:
         options.set_special_options(special_opts)
     try:
         allow_free_input = kwargs.pop('allow_free_input')
@@ -146,7 +152,9 @@ def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> AnswerTu
 
 
 def choose(prompt, *options, **kwargs):
-    """Presents `options` by *index*. Expects at least one option."""
+    """Presents `options` by *index*. Expects at least one option.
+
+    Returns index (str) or key (str) according to user choice."""
     # TODO: test if ok with 'yes'/'no/
     # * options
     options = Options(*options)
@@ -168,7 +176,6 @@ def choose(prompt, *options, **kwargs):
 
 # TODO: implement prompt.ask('yes', 'quit', no='open with current') that returns bool (see search.py _choose_from_many())
 def ask(prompt, **kwargs: Union[str, tuple, bool]) -> bool:
-    # def ask(prompt, **kwargs: Union[str, tuple, bool]) -> bool:
     """A 'y/n' prompt.
 
     If `options` contains any "special options", they are presented by key.
@@ -178,9 +185,6 @@ def ask(prompt, **kwargs: Union[str, tuple, bool]) -> bool:
         ask('pizza?', special_opts=True) → [y], [n], [c], [d], [q]
         ask('burger?', special_opts=('quit', 'debug')) → [y], [n], [q], [d]
         ask('proceed?') → [y], [n]
-    :param special_opts:
-        If True, special options: ('continue', 'debug', 'quit') are also presented.
-        If a str, it has to be one of the special options above.
     """
     options = Options('yes', 'no')
     # *  special options
@@ -191,7 +195,7 @@ def ask(prompt, **kwargs: Union[str, tuple, bool]) -> bool:
     if 'allow_free_input' in kwargs:
         raise ValueError("can't have 'allow_free_input' passed to ask(). always returns a bool.")
     
-    # *  keyword-actions
+    # *  keyword-options
     options.set_kw_options(**kwargs)
     
     return Prompt(prompt, options).answer
@@ -231,9 +235,14 @@ def action(question, *actions, **kwargs):
     # *  special options
     if 'special_opts' in kwargs:
         options.set_special_options(kwargs.pop('special_opts'))
-    
+        
+        # * allow_free_input
+    try:
+        allow_free_input = kwargs.pop('allow_free_input')
+    except KeyError:
+        allow_free_input = False
     # *  keyword-actions
     options.set_kw_options(**kwargs)
     
     print(termcolor.green(f'action() | actions: {repr(actions)}, options: {repr(options)}'))
-    return Prompt(question, options).answer
+    return Prompt(question, options, allow_free_input=allow_free_input).answer

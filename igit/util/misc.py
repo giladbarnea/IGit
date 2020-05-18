@@ -75,3 +75,7 @@ def memoize(fn):
         return val
     
     return wrapper
+
+
+def unreq_opts(default):
+    return dict(default=default, required=False, show_default=True, type=type(default))

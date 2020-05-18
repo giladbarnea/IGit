@@ -43,7 +43,8 @@ class Options:
         return f'Options(opts = {repr(self.opts)}, kw_opts = {repr(self.kw_opts)}, special_opts = {repr(self.special_opts)})'
     
     def set_special_options(self, special_opts: Union[str, Iterable, bool]) -> NoReturn:
-        """Handles passing different types of special_opts (single string, tuple of strings, or boolean), and returns a Special tuple."""
+        """Sets `self.special_opts` with Special objects.
+        Handles passing different types of special_opts (single string, tuple of strings, or boolean), and returns a Special tuple."""
         if special_opts is True:
             self.special_opts = tuple(Special.__members__.values())
             return
