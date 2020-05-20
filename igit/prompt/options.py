@@ -22,7 +22,6 @@ class Options:
         self._items = None
         self._indexeditems = None
         self._all_yes_or_no = None  # calculated only when None (not True or False)
-        self._any_yes_or_no = None  # calculated only when None (not True or False)
     
     def __bool__(self):
         return bool(self.opts) or bool(self.kw_opts) or bool(self.special_opts)
@@ -80,14 +79,14 @@ class Options:
             return self._all_yes_or_no
         nonspecials = set(self.opts)
         nonspecials.update(set(self.kw_opts.values()))
+        if not nonspecials:
+            self._all_yes_or_no = False
+            return self._all_yes_or_no
         _all_yes_or_no = True
-        _any_yes_or_no = False
         for nonspecial in nonspecials:
-            if re.fullmatch(YES_OR_NO, nonspecial):
-                _any_yes_or_no = True
-            else:
+            if not re.fullmatch(YES_OR_NO, nonspecial):
                 _all_yes_or_no = False
-        self._any_yes_or_no = _any_yes_or_no
+                break
         self._all_yes_or_no = _all_yes_or_no
         return self._all_yes_or_no
     
@@ -123,7 +122,7 @@ class Options:
         initials = [o[0] for o in self.opts]  # initials: 'w' 'w' 's' 'i' 'a'
         for idx, opt in enumerate(self.opts):
             initial: str = opt[0]
-            duplicate_idxs = [jdx for jdx, item in enumerate(initials) if item == initial and jdx != idx]
+            duplicate_idxs = [jdx for jdx, jinitial in enumerate(initials) if jinitial == initial and jdx != idx]
             if not duplicate_idxs:
                 items[initial] = opt
                 continue

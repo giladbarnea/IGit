@@ -1,3 +1,4 @@
+import functools
 import os
 
 import re
@@ -51,31 +52,48 @@ def deephash(obj):
             return hash(pformat(obj))
 
 
-def memoize(fn):
-    """Generic memoizer to functions. Best with static functions. Example:
-    ::
-        @memoize
-        def get_key(self, secret_name, key_name): ..."""
-    memory = dict()
-    if fn not in memory:
-        memory[fn] = dict()
+def memoize(fun):
+    """A simple memoize decorator for functions supporting (hashable)
+    positional arguments.
+    It also provides a cache_clear() function for clearing the cache:
+
+    >>> @memoize
+    ... def foo()
+    ...     return 1
+        ...
+    >>> foo()
+    1
+    >>> foo.cache_clear()
+    >>>
+    """
     
+    @functools.wraps(fun)
     def wrapper(*args, **kwargs):
-        if args and kwargs:
-            h = deephash(args + tuple(kwargs.items()))
-        
-        else:
-            h = deephash(args)
-        
-        val = memory[fn].get(h)
-        if val is None:  # put in memory
-            val = fn(*args, **kwargs)
-            memory[fn][h] = val
-        
-        return val
+        key = (args, frozenset(sorted(kwargs.items())))
+        try:
+            return cache[key]
+        except KeyError:
+            ret = cache[key] = fun(*args, **kwargs)
+            return ret
     
+    def cache_clear():
+        """Clear cache."""
+        cache.clear()
+    
+    cache = {}
+    wrapper.cache_clear = cache_clear
     return wrapper
 
 
-def unreq_opts(default):
-    return dict(default=default, required=False, show_default=True, type=type(default))
+def is_pycharm():
+    return 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
+
+
+def getsecret(label: str) -> str:
+    import secretstorage
+    con = secretstorage.dbus_init()
+    col = secretstorage.get_default_collection(con)
+    secret = None
+    for item in col.get_all_items():
+        if item.get_label() == label:
+            return item.get_secret().decode()

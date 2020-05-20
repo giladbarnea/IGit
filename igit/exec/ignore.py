@@ -1,54 +1,37 @@
 #!/usr/bin/env python3.8
 import sys
-from pathlib import Path
 from typing import List, Tuple
 import click
 
 from igit.status import Status
 from igit.util import termcolor
-from igit.util.misc import unreq_opts
+from igit.util.clickextensions import unrequired_opt
+from igit.util.path import ExPath as Path
 from igit.util.types import PathOrStr
-from igit.prompt import ask
+from igit import prompt
+from igit.ignore import Gitignore
+from ipdb import set_trace
+import inspect
+from more_itertools import partition
 
 
-def write(paths, confirm, dry_run):
-    gitignore = Path('.gitignore')
-    if not gitignore.is_file():
+def write(paths: List[Path], confirm: bool, dry_run: bool):
+    gitignore = Gitignore()
+    if not gitignore.exists():
         # TODO: prompt for create
         sys.exit(termcolor.red(f'{gitignore.absolute()} is not file'))
-    with gitignore.open(mode='r+') as f:
-        # TODO: sort alphabetically
-        data = f.read()
-        if data and data[-1] == '\n':
-            prefix = ''
-        else:
-            prefix = '\n'
-        for p in paths:
-            if "*" in str(p):
-                val = p
-            else:
-                val = f'{p}/' if p.is_dir() else p
-            # TODO: check if parent of wildcard exists
-            to_write = f'{prefix}{val}\n'
-            if str(val) in data:
-                print(termcolor.yellow(f'{val} already in gitignore, continuing'))
-                continue
-            if confirm and not ask(f'ignore {to_write}?'):
-                continue
-            if not dry_run:
-                f.write(to_write)
-            prefix = ''
-            print(termcolor.green(f'Added {val} to .gitignore'))
+    
+    gitignore.ignore(paths, confirm=confirm, dry_run=dry_run)
     if dry_run:
         print('dry run finished')
 
 
-def build_paths(exclude_parent, exclude_paths, ignore_paths):
+def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[Path]:
     statusfiles = None
     paths: List[Path] = []
     for f in ignore_paths:
         # * wildcard
-        if "*" in str(f):
+        if "*" in f:
             paths.append(f)
             continue
         
@@ -80,6 +63,7 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths):
 
 
 def handle_exclude_paths(exclude_paths_str: str) -> Tuple[Path, List[Path]]:
+    """Does the '.config/dconf copyq' trick"""
     if not exclude_paths_str:
         return None, None
     if '/' in exclude_paths_str:
@@ -91,7 +75,7 @@ def handle_exclude_paths(exclude_paths_str: str) -> Tuple[Path, List[Path]]:
     return exclude_parent, exclude_paths
 
 
-def ignore(confirm, dry_run, ignore_paths, exclude_paths_str: str = None):
+def ignore(confirm: bool, dry_run: bool, ignore_paths, exclude_paths_str: str = None):
     exclude_parent, exclude_paths = handle_exclude_paths(exclude_paths_str)
     if exclude_paths:
         if not ignore_paths:
@@ -107,15 +91,15 @@ def ignore(confirm, dry_run, ignore_paths, exclude_paths_str: str = None):
 
 @click.command()
 @click.argument('ignore_paths', nargs=-1)
-@click.option('-e', '--exclude', 'exclude_paths_tuple', multiple=True, **unreq_opts(''),
-              help="""space separated paths to NOT add to gitignore. must be subpaths of a dir passed in IGNORE_PATHS.\n
+@unrequired_opt('-e', '--exclude', 'exclude_paths_tuple', multiple=True, type=str,
+                help="""will NOT be added to gitignore. must be subpaths of a dir passed in IGNORE_PATHS.\n
                     examples:\n
                     -e .config/dconf copyq\n
                     -e .ipython/profile_default/startup ipython_config.py\n
                     -e .oh-my-zsh/plugins/colored-man-pages/colored-man-pages.plugin.zsh -e .oh-my-zsh/plugins/globalias/globalias.plugin.zsh\n
                     """)
-@click.option('-c', '--confirm', help='confirm before each write. flag.', **unreq_opts(False), is_flag=True)
-@click.option('-n', '--dry-run', help='dont actually write to file. flag.', **unreq_opts(False), is_flag=True)
+@unrequired_opt('-c', '--confirm', help='confirm before each write. flag.', is_flag=True)
+@unrequired_opt('-n', '--dry-run', help='dont actually write to file. flag.', is_flag=True)
 def main(ignore_paths: List[PathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm, dry_run):
     if exclude_paths_tuple:
         for exclude_paths_str in exclude_paths_tuple:

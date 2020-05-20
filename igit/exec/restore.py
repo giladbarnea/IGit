@@ -18,10 +18,11 @@ def main(index_or_substr):
             restoreall = True
         elif answer == 'c':
             status = Status()
-            key, choice = prompt.choose('which?', *status.files, 'quit', allow_free_input=True)
-            if key.isdigit():
-                restore = status.files[int(answer)]
-            else:
+            choice = prompt.choose('which?', *status.files, 'quit', allow_free_input=True)
+            try:
+                restore = status.files[choice]
+            except Exception as e:
+                
                 restore = status.search(answer)
     
     # util.clip_copy(branch)

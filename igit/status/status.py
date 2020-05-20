@@ -1,9 +1,10 @@
 import os
-from pathlib import Path
+
 from typing import Tuple, List, Dict
 
+from igit.util.path import ExPath as Path
 from igit.util.types import PathOrStr
-from igit.util import shell, termcolor
+from igit.util import shell, termcolor, cachedprop
 from igit import prompt
 from igit.util.search import search_and_prompt
 
@@ -29,16 +30,15 @@ class Status:
     def __bool__(self):
         return bool(self.status)
     
-    @property
+    @cachedprop
     def status(self) -> List[str]:
-        if not self._status:
-            self._status = shell.tryrun('git status -s', printout=False, printcmd=False).splitlines()
-        return self._status
+        return shell.tryrun('git status -s', printout=False, printcmd=False).splitlines()
     
-    @property
+    @cachedprop
     def file_status_map(self) -> Dict[Path, str]:
         def _clean_shortstatus(_x) -> Tuple[Path, str]:
-            _file, _status = _x[3:].replace('"', ''), _x[:3].strip()
+            # _file, _status = _x[3:].replace('"', ''), _x[:3].strip()
+            _status, _file = map(str.strip, _x.split(maxsplit=1))
             if 'R' in _status:
                 if '->' not in _file:
                     raise ValueError(f"'R' in status but '->' not in file. file: {_file}, status: {_status}", locals())
@@ -48,22 +48,21 @@ class Status:
                     raise ValueError(f"'R' not in status but '->' in file. file: {_file}, status: {_status}", locals())
             return Path(_file), _status
         
-        if not self._file_status_map:
-            self._file_status_map = self._file_status_map = dict([_clean_shortstatus(s) for s in self.status])
-        return self._file_status_map
+        return dict([_clean_shortstatus(s) for s in self.status])
     
-    @property
+    @cachedprop
     def files(self) -> List[Path]:
-        if not self._files:
-            newfiles = []
-            knownfiles = []
-            for file, statuce in self.file_status_map.items():
-                if 'A' in statuce:
-                    newfiles.append(file)
-                else:
-                    knownfiles.append(file)
-            self._files = [*newfiles, *knownfiles]
-        return self._files
+        newfiles = []
+        knownfiles = []
+        for file, statuce in self.file_status_map.items():
+            if 'A' in statuce:
+                newfiles.append(file)
+            else:
+                knownfiles.append(file)
+        return [*newfiles, *knownfiles]
+        # if not self._files:
+        #     self._files = [*newfiles, *knownfiles]
+        # return self._files
     
     def search(self, keyword: str) -> str:
         with_suffix = bool(Path(keyword).suffix)

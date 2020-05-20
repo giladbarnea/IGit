@@ -11,7 +11,7 @@ from igit.util.regex import YES_OR_NO
 
 
 def _input(s):
-    return input(termcolor.white(s)).lower()
+    return input(termcolor.white(s))
 
 
 AnswerTuple = Tuple[str, Union[str, Special]]
@@ -21,13 +21,18 @@ class Prompt:
     answer: Union[AnswerTuple, bool, None]
     
     @staticmethod
-    def dialog_string(question: str, options: Options) -> str:
-        return f'{question}\n\t{options.str(key="initial")}\t'
+    def dialog_string(question: str, options: Options, *, allow_free_input=False) -> str:
+        options_str = options.str(key="initial")
+        question_str = f'{question}'
+        if allow_free_input:
+            question_str += ' (free input allowed)'
+        if options_str:
+            return f'{question_str}\n\t{options_str}\t'
+        else:
+            return question_str + '\t'
     
     @staticmethod
     def get_answer(question: str, options: Options, *, allow_free_input=False) -> Tuple[Any, Any]:
-        if allow_free_input:
-            question += '\n\t(free input allowed)\t'
         ans_key = _input(question)
         items = options.items()
         if ans_key not in items:
@@ -47,29 +52,26 @@ class Prompt:
         self.answer = None
         # don't set(options) because set isn't ordered
         
-        # *  Simple Prompt (boolean self.answer)
-        if not options:
-            # prompt.ask('Coffee?') # TODO: this happens only if passed empty Options()
-            self.answer: bool = _input(f'{question} y/n\t').startswith('y')
-            return
+        # if not options:
+        #     # prompt.ask('Coffee?') # TODO: this happens only if passed empty Options()
+        #     self.answer: bool = _input(f'{question} y/n\t').startswith('y')
+        #     return
         
         # *  Complex Prompt
-        question = self.dialog_string(question, options)
-        answer: AnswerTuple = self.get_answer(question, options, allow_free_input=allow_free_input)
+        question = self.dialog_string(question, options, allow_free_input=allow_free_input)
+        key, answer = self.get_answer(question, options, allow_free_input=allow_free_input)
         
         # *  Special Answer
         try:
-            special_answer: Special = Special(answer[0])
+            # raises ValueError if answer isn't Special
+            special_answer: Special = Special.from_full_name(answer)
             
-            # answered either of SPECIAL_ANSWERS
             special_answer.execute_answer()
             
-            # if special_answer == 'c' → 'answer' var is already 'c' → self.answer = answer
             if special_answer == Special.DEBUG:
                 # debugger already started and finished in special_answer.execute_answer() (user 'continue'd here)
                 self.answer = self.get_answer(question, options)
             elif special_answer == Special.CONTINUE:
-                # special_answer == 'c' → 'answer' var is already 'c' (still relevant?)
                 self.answer = Special.CONTINUE.value, Special.CONTINUE
             else:
                 raise NotImplementedError
@@ -77,37 +79,51 @@ class Prompt:
             # *  DIDN'T answer any special
             if options.all_yes_or_no():
                 # prompt.ask('Coffee?', 'yes', 'no', 'quit') → didn't answer 'quit' → boolean self.answer
-                self.answer: bool = answer[0] == 'y'
+                self.answer: bool = key.lower() == 'y'
             else:
-                # TODO: when does this happen?
-                self.answer = answer
+                self.answer = key, answer
 
 
 class Choice(Prompt):
     answer: AnswerTuple
     
     @staticmethod
-    def dialog_string(question: str, options: Options) -> str:
-        return f'{question}\n\t{options.str(key="index")}\t'
+    def _try_convert_to_idx(ans_key: str):
+        if ans_key.isdigit():
+            return int(ans_key)
+        if ':' in ans_key:
+            start, _, stop = ans_key.partition(':')
+            return slice(int(start), int(stop))
+        return ans_key
+    
+    @staticmethod
+    def dialog_string(question: str, options: Options, *, allow_free_input=False) -> str:
+        options_str = options.str(key="index")
+        question_str = f'{question}'
+        if allow_free_input:
+            question_str += ' (free input allowed)'
+        if options_str:
+            return f'{question_str}\n\t{options_str}\t'
+        else:
+            return question_str + '\t'
     
     @staticmethod
     def get_answer(question: str, options: Options, *, allow_free_input=False) -> Tuple[Any, Any]:
-        if allow_free_input:
-            question += '\n\t(free input allowed)\t'
         ans_key = _input(question)
         indexeditems = options.indexeditems()
         if ans_key not in indexeditems:
             if allow_free_input:
                 # * Free input
                 print(termcolor.green(f"Returning free input: (None, '{ans_key}')"))
+                ans_key = Choice._try_convert_to_idx(ans_key)
                 return None, ans_key
             else:
                 while ans_key not in indexeditems:
                     print(termcolor.yellow(f"Unknown option: '{ans_key}'"))
                     ans_key = _input(question)
         ans_value = indexeditems[ans_key]
-        answer = ans_key, ans_value
-        return answer
+        ans_key = Choice._try_convert_to_idx(ans_key)
+        return ans_key, ans_value
     
     def __init__(self, question: str, options: Options, *, allow_free_input=False):
         if not options:
@@ -115,16 +131,15 @@ class Choice(Prompt):
         super().__init__(question, options, allow_free_input=allow_free_input)
 
 
-def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]) -> Prompt:
+def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
     """Most permissive, a simple wrapper for Prompt ctor. `options` are optional, `kwargs` are optional.
     The only function that returns a Prompt object.
     Examples::
 
         generic('This and that, continue?', 'yes', 'quit') → [y], [q]
     """
-    
     # TODO: consider make Options ctor be able to handle Options('continue')
-    standard_opts, special_opts = partition(lambda o: o in Special.full_names(), options)
+    standard_opts, special_opts = map(list, partition(lambda o: o in Special.full_names(), options))
     options = Options(*standard_opts)
     if 'special_opts' in kwargs:
         if special_opts:
@@ -138,7 +153,7 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]) -> Pr
         allow_free_input = False
     options.set_kw_options(**kwargs)
     
-    return Prompt(prompt, options, allow_free_input=allow_free_input)
+    return Prompt(prompt, options, allow_free_input=allow_free_input).answer
 
 
 @overload
@@ -155,7 +170,7 @@ def choose(prompt, *options, **kwargs):
     """Presents `options` by *index*. Expects at least one option"""
     # TODO: test if ok with 'yes'/'no/
     # * options
-    standard_opts, special_opts = partition(lambda o: o in Special.full_names(), options)
+    standard_opts, special_opts = map(list, partition(lambda o: o in Special.full_names(), options))
     options = Options(*standard_opts)
     if 'special_opts' in kwargs:
         if special_opts:

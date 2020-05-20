@@ -1,50 +1,54 @@
 #!/usr/bin/env python3.8
 import os
 import sys
-
+import click
 from igit import prompt, git
+from igit.ignore import Gitignore
 from igit.util import termcolor, shell
 from igit.util.misc import unquote
+from igit.util.path import ExPath
 
 
-def main():
-    args = sys.argv[1:]
-    cwd = os.getcwd()
-    print('bash args: ', args, 'bool(args):', bool(args))
-    if not args:
-        sys.exit(termcolor.red('no args! exiting'))
+@click.command()
+@click.argument('paths', nargs=-1)
+def main(paths):
+    print(f'main({", ".join(paths)})')
+    # TODO: see if exists in status
+    if not paths:
+        sys.exit(termcolor.red('no paths! exiting'))
     
     cmds = []
-    basenames = []
-    for a in args:
-        a = unquote(a)
-        abspath = os.path.join(cwd, a)
-        if not os.path.exists(abspath):
-            print(f"{termcolor.yellow(abspath)} does not exist, skipping")
+    gitignore = Gitignore()
+    existing_paths = []
+    for p in paths:
+        p = ExPath(unquote(p))
+        
+        if not p.exists():
+            print(f"{termcolor.yellow(p)} does not exist, skipping")
             continue
         
         # exists
-        if os.path.isfile(abspath):
-            cmds.append(f'git rm --cached {a}')
-        elif os.path.isdir(abspath):
-            cmds.append(f'git rm -r --cached {a}')
+        if p.is_dir():
+            cmds.append(f'git rm -r --cached {p}')
         else:
-            print(f'{termcolor.yellow(abspath)} is not file nor dir, skipping (weird)')
-            continue
+            cmds.append(f'git rm --cached {p}')
         
-        # exists and is file or dir
-        basenames.append(os.path.basename(a))
+        existing_paths.append(p)
     
     if not cmds:
-        sys.exit(termcolor.red('no files to rm, exiting'))
+        sys.exit(termcolor.red('no paths to rm, exiting'))
     
-    for c in cmds:
-        shell.tryrun(c, abortonfail=False)
+    shell.tryrun(*cmds, raiseonfail=False)
+    if prompt.ask(f'try to ignore {len(existing_paths)} paths?'):
+        gitignore.ignore(existing_paths)
     
-    commitmsg = f'Removed from cache: ' + ', '.join(basenames)
+    key, answer = prompt.generic(f'commit and push?', 'yes, commit with "Removed from cache: ..."', 'custom commit message', 'quit')
+    if key == 'y':
+        commitmsg = f'Removed from cache: ' + ', '.join(map(str, paths))
+    else:
+        commitmsg = prompt.generic('commit msg:', allow_free_input=True)[1]
     shell.tryrun(f'git commit -a -m "{commitmsg}"')
-    if prompt.ask('push?'):
-        git.push()
+    git.push()
 
 
 if __name__ == '__main__':

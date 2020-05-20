@@ -5,6 +5,8 @@ from enum import Enum
 from igit.util import termcolor
 
 
+# from IPython.con
+
 class Special(Enum):
     """Special('c') → Special.CONTINUE"""
     CONTINUE = 'c'
@@ -37,8 +39,9 @@ class Special(Enum):
             while frame.f_code.co_filename == __file__:
                 frame = frame.f_back
                 up_frames.append(frame.f_code.co_name)
-            from ipdb import set_trace
             print(termcolor.bold(f'u {len(up_frames)}'), termcolor.grey(repr(up_frames)))
+            from ipdb import set_trace
             set_trace(frame, context=30)
+            
             return None
         raise NotImplementedError(f"don't support this enum type yet: {self}")

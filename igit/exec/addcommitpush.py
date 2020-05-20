@@ -16,7 +16,8 @@ def verify_shebang(f: Path, lines):
     regex = re.compile(r'^#!/usr/bin/env python3\.([78])$')
     firstline = lines[0].splitlines()[0]
     if not re.fullmatch(regex, firstline):
-        answer = prompt.choose(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}')",
+        raise NotImplementedError()
+        answer = prompt.action(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}')",
                                'add to .gitignore', 'add python3.7 shebang', 'add python3.8 shebang',
                                special_opts=True)
         

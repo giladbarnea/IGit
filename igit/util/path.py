@@ -1,8 +1,32 @@
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PosixPath
 
 import re
 
 from igit.util.types import PathOrStr
+
+
+class ExPath(PosixPath):
+    
+    def __contains__(self, other):
+        return other in str(self)
+    
+    def subpath_of(self, other):
+        try:
+            return str(self).startswith(str(other))
+        except ValueError:
+            return False
+    
+    def parent_of(self, other):
+        try:
+            return str(other).startswith(str(self))
+        except ValueError:
+            return False
+
+
+# ExPath = Path
+# ExPath.__contains__ = __contains__
+# ExPath.subpath_of = subpath_of
+# ExPath.parent_of = parent_of
 
 
 def dirsize(path: PathOrStr) -> int:
