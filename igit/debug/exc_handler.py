@@ -224,3 +224,126 @@ class ExcHandler:
             if fs.locals is not None:
                 description += f'\nLocals:\n{ExcHandler._format_locals(fs.locals)}'
         return f'\n{description}\n'
+
+
+def investigate(loglevel: str = 'INFO', *, logArgs=True, logReturn=True, logExc=True, showLocalsOnExc=True, showLocalsOnReturn=False):
+    """
+    A decorator that logs common debugging information, like formatted exceptions before they're thrown, argument names and values, return value etc.
+    ::
+        @logger.investigate(showLocalsOnReturn=True)
+        def foo(bar):
+            ...
+    """
+    
+    def wrapper(fn):
+        
+        def decorator(*fnArgs, **fnKwargs):
+            term.set_option(print=True)
+            fnname = fn.__qualname__
+            if '.' in fnname:
+                identifier = fnname
+            else:
+                identifier = f'{inspect.getmodulename(inspect.getmodule(fn).__file__)}.{fnname}'
+            
+            term.green(f'\nentered {identifier}()')
+            
+            if logArgs:
+                # create a pretty str representation of the function arguments
+                args = inspect.getfullargspec(fn)
+                arg_names = args.args
+                if args.defaults:
+                    arg_defaults = dict(zip(arg_names[-len(args.defaults):], args.defaults))
+                else:
+                    arg_defaults = dict()
+                args_str = ", ".join([f'{k}={repr(v)}' for k, v in zip(arg_names, fnArgs)])
+                if len(arg_names) < len(fnArgs):
+                    args_str += ', ' + f', '.join(map(repr, fnArgs[-len(arg_names):]))
+                remaining_arg_names = arg_names[len(fnArgs):]
+                fnKwargs_copy = dict(fnKwargs)
+                for a in remaining_arg_names:
+                    if a in fnKwargs_copy:
+                        args_str += f', {a}={repr(fnKwargs_copy[a])}'
+                        del fnKwargs_copy[a]
+                    elif a in arg_defaults:
+                        args_str += f', {a}={repr(arg_defaults[a])}'
+                
+                if fnKwargs_copy:
+                    for k, v in fnKwargs_copy.items():
+                        args_str += f', {k}={repr(v)}'
+                
+                if args_str:
+                    term.green(f'args: {fnname}({args_str})')
+                else:
+                    term.green(f'no args passed')
+            
+            try:
+                retval = fn(*fnArgs, **fnKwargs)
+                if logReturn:
+                    
+                    pretty = pformat(retval, depth=1)
+                    if showLocalsOnReturn:
+                        # try:
+                        #     raise Exception("dummy")
+                        # except Exception as e:
+                        #     hdlr = ExcHandler(e)
+                        # ins_stack = inspect.stack()
+                        # tb_stack: traceback.StackSummary = traceback.extract_stack()
+                        # tb_stack = ExcHandler._remove_nonlib_frames(tb_stack)
+                        pass
+                    if len(pretty) > 300:  # don't clutter
+                        pretty = f'{pretty[:300]}...'
+                    term.green(f'Returning {pretty}')
+                
+                else:
+                    term.green(f'exited {identifier}()')
+                
+                return retval
+            except Exception as e:
+                if logExc:
+                    e_handler = ExcHandler(e)
+                    term.red(e_handler.full())
+                
+                raise e
+            finally:
+                term.set_option(print=False)
+            #     logger.handlers[0].setFormatter(oldformatter)
+        
+        return decorator
+    
+    return wrapper
+
+
+def printdbg(*args, **kwargs):
+    """
+    Prints the variable name, its type and value.
+    ::
+        printdbg(5 + 5, sum([1,2]))
+        > 5 + 5 (<class 'int'>):
+          10
+
+          sum([1,2]) (<class 'int'>):
+          3
+
+    """
+    import inspect
+    
+    def printarg(_name, _val):
+        print(f'{_name} ({type(_val)}):', _val, sep='\n', end='\n\n')
+    
+    if args:
+        currframe = inspect.currentframe()
+        outer = inspect.getouterframes(currframe)
+        frameinfo = outer[1]
+        ctx = frameinfo.code_context[0].strip()
+        argnames = ctx[ctx.find('(') + 1:-1].split(',')
+        if len(argnames) != len(args) + len(kwargs):
+            print(f"Too complex statement, try breaking it down to variables")
+            return
+        for i, val in enumerate(args):
+            try:
+                name = argnames[i].strip()
+            except IndexError:
+                continue
+            printarg(name, val)
+    for name, val in kwargs.items():
+        printarg(name, val)
