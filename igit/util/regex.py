@@ -10,21 +10,19 @@ FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,4}')
 # TRAILING_RE: Pattern = re.compile(fr"({PATH_WILDCARD}*{FILE_CHAR}*)({PATH_WILDCARD}*)")
 # LEADING_RE: Pattern = re.compile(fr'({PATH_WILDCARD}*)(.*$)')
 YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
-ONLY_REGEX: Pattern = re.compile(r'^[\^\.\\+\?\*\(\)\|\[\]\{\}\$]+$')
-ADV_REGEX_CHAR = '\\+()|[]{}$^'
+ONLY_REGEX: Pattern = re.compile(r'[\^\.\\+\?\*\(\)\|\[\]\{\}\<\>\$]+')
+ADV_REGEX_CHAR = '\\+()|[]{}$^<>'
 ADV_REGEX_2CHAR = ['.*', '.+', '.?']
 GLOB_CHAR = '?*'
 REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
 
 
-@memoize
 def is_only_regex(val: str):
     if not val:
         return False
-    return bool(re.match(ONLY_REGEX, val))
+    return bool(re.fullmatch(ONLY_REGEX, val))
 
 
-@memoize
 def endswith_regex(val: str):  # doesnt detect single dot
     if not val:
         return False
@@ -32,7 +30,6 @@ def endswith_regex(val: str):  # doesnt detect single dot
     return end in GLOB_CHAR or end in ADV_REGEX_CHAR or val[-2:] in ADV_REGEX_2CHAR
 
 
-@memoize
 def has_regex(val: str):  # doesnt detect single dot
     if not val:
         return False
@@ -47,7 +44,6 @@ def has_regex(val: str):  # doesnt detect single dot
     return False
 
 
-@memoize
 def has_adv_regex(val: str):  # doesnt detect single dot
     if not val:
         return False

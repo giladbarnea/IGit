@@ -15,7 +15,8 @@ from igit.util.regex import (strip_trailing_path_wildcards,
                              ADV_REGEX_CHAR,
                              REGEX_CHAR)
 from igit.tests import common
-from igit.tests.common import mixed_suffixes, split_iter_by, get_permutations
+from igit.tests.common import mixed_suffixes, split_iter_by, get_permutations, nonregex, has_regex_and_nonregex, iter_permutations
+from itertools import chain
 
 
 @memoize
@@ -36,11 +37,85 @@ def dont_end_with_re():
     return get_end_with_re_split()[1]
 
 
-from string import ascii_letters, digits
+# ** has_regex
+def test__has_regex__nonregex_char():
+    for c in nonregex:
+        assert has_regex(c) is False
 
 
+def test__has_regex__regex_char():
+    for c in REGEX_CHAR:
+        assert has_regex(c) is True
+
+
+def test__has_regex__regex_string():
+    regex_strings = get_permutations(REGEX_CHAR + '.', 3)
+    for stryng in regex_strings:
+        assert has_regex(stryng) is True
+
+
+def test__has_regex__nonregex_string():
+    nonregex_strings = get_permutations(nonregex + '.', 3)
+    for stryng in nonregex_strings:
+        assert has_regex(stryng) is False
+
+
+def test__has_regex__mixed_string():
+    mixed_strings = iter_permutations(nonregex + '.', 3, has_regex_and_nonregex)
+    for stryng in mixed_strings:
+        assert has_regex(stryng) is True
+
+
+# ** has_adv_regex
+def test__has_adv_regex__nonregex_char():
+    for c in nonregex:
+        assert has_adv_regex(c) is False
+
+
+def test__has_adv_regex__glob_char():
+    for c in GLOB_CHAR:
+        assert has_adv_regex(c) is False
+
+
+def test__has_adv_regex__adv_regex_char():
+    for c in ADV_REGEX_CHAR:
+        assert has_adv_regex(c) is True
+
+
+def test__has_adv_regex__glob__manual():
+    globs = [
+        "*.py",
+        "*.**",
+        "*/**",
+        "f*le.py",
+        "f*le?.py",
+        "f*le?.p*y",
+        "f*le?.*",
+        "file*",
+        "*file",
+        "*fi?le",
+        "*fi?le*",
+        ".*fi?le*",
+        ]
+    for glob in globs:
+        assert has_adv_regex(glob) is False
+
+
+def test__has_adv_regex__nonregex_string():
+    nonregex_strings = get_permutations(nonregex + '.', 3)
+    for stryng in nonregex_strings:
+        assert has_adv_regex(stryng) is False
+
+
+def test__has_adv_regex__mixed_string():
+    mixed_strings = iter_permutations(nonregex + '.', 3, has_regex_and_nonregex)
+    for stryng in mixed_strings:
+        assert has_adv_regex(stryng) is True
+
+
+# ** is_only_regex
 def test__is_only_regex__nonregex_char():
-    for c in ascii_letters + digits:
+    for c in nonregex:
         assert is_only_regex(c) is False
 
 
@@ -50,17 +125,25 @@ def test__is_only_regex__regex_char():
 
 
 def test__is_only_regex__regex_string():
-    regex_strings = get_permutations(REGEX_CHAR + '.', 5)
+    regex_strings = get_permutations(REGEX_CHAR + '.', 3)
     for stryng in regex_strings:
         assert is_only_regex(stryng) is True
 
 
 def test__is_only_regex__nonregex_string():
-    nonregex_strings = get_permutations(ascii_letters + digits, 5)
+    nonregex_strings = get_permutations(nonregex + '.', 3)
     for stryng in nonregex_strings:
         assert is_only_regex(stryng) is False
 
 
+def test__is_only_regex__mixed_string():
+    assert is_only_regex(nonregex + '.') is False
+    mixed_strings = iter_permutations(nonregex + '.', 3, has_regex_and_nonregex)
+    for stryng in mixed_strings:
+        assert is_only_regex(stryng) is False
+
+
+# ** endswith_regex
 def test__endswith_regex__false_cases():
     for x in dont_end_with_re():
         assert endswith_regex(x) is False

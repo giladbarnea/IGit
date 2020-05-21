@@ -87,9 +87,17 @@ def memoize(fun):
     def wrapper(*args, **kwargs):
         key = (args, frozenset(sorted(kwargs.items())))
         try:
-            return cache[key]
+            try:
+                return cache[key]
+            except TypeError as e:  # unhashable type: 'slice'
+                return cache[repr(key)]
+        
         except KeyError:
-            ret = cache[key] = fun(*args, **kwargs)
+            ret = fun(*args, **kwargs)
+            try:
+                cache[key] = ret
+            except TypeError as e:  # unhashable type: 'slice'
+                cache[repr(key)] = ret
             return ret
     
     def cache_clear():

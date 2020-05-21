@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from igit.tests.common import get_permutations_in_size_range, is_mixed_string, path_regexes, mixed_suffixes
+from igit.tests.common import get_permutations_in_size_range, has_letters_and_punc, path_regexes, mixed_suffixes
 from igit.util.path import has_file_suffix, ExPath
 
 
@@ -39,7 +39,7 @@ def test__has_file_suffix__with_mixed_regex_suffix():
 def test__has_file_suffix__everything_mixed_with_regex():
     # e.g. '.*/py_v[en]*v.xm?l'. should return has suffix (True)
     assert has_file_suffix('.*/py_v[en]*v.xm?l') is True
-    mixed_stems = get_permutations_in_size_range(f'{REGEX_CHAR}.py_venv-1257', slice(5), is_mixed_string)
+    mixed_stems = get_permutations_in_size_range(f'{REGEX_CHAR}.py_venv-1257', slice(5), has_letters_and_punc)
     for stem in mixed_stems:
         for suffix in mixed_suffixes():
             name = f'{stem}.{suffix}'
