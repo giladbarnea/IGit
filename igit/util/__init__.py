@@ -1,2 +1,2 @@
 from . import path
-from .cachedprop import cachedprop
+from .cache import cachedprop

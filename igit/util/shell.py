@@ -6,19 +6,24 @@ from igit.util import termcolor
 import subprocess as sp
 
 
-def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True, input: bytes = None) -> Union[str, List[str]]:
+def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
+           input: bytes = None, stdout=sp.PIPE, stderr=sp.DEVNULL) -> Union[str, List[str]]:
     outs = []
     for cmd in cmds:
         if printcmd:
             fmtd = termcolor.color(f'\n{cmd}', "lightgrey", "italic")
             print(fmtd)
         try:
-            runargs = dict(stdout=sp.PIPE)
+            runargs = dict(stdout=stdout, stderr=stderr)
+            # runargs = dict()
             if input:
                 runargs['input'] = input
             
             proc = sp.run(shlex.split(cmd), **runargs)
-            out = proc.stdout.decode().strip()
+            if proc.stdout:
+                out = proc.stdout.decode().strip()
+            else:
+                out = None
         except Exception as e:
             print(termcolor.yellow(f'FAILED: {cmd}\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
             if raiseonfail:

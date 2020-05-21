@@ -80,10 +80,13 @@ class Matches(Generic[T]):
 
 def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
     matches = fuzzy(keyword, collection, cutoff)
+    print(repr(matches))
     return matches.best()[0]
 
 
 def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
+    if not collection:
+        raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
     far_matches = Matches(maxsize=5)
     for item in collection:

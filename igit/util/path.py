@@ -1,7 +1,7 @@
-from pathlib import Path, PurePosixPath, PosixPath
-
 import re
+from pathlib import Path, PosixPath
 
+from igit.util.regex import FILE_SUFFIX, is_only_regex
 from igit.util.types import PathOrStr
 
 
@@ -43,10 +43,13 @@ def has_file_suffix(path: PathOrStr) -> bool:
     suffix = path.suffix
     if suffix:
         stem = path.stem
-        just_regex = re.compile(r'^[*.\\/]+$')
-        is_stem_just_regex = re.match(just_regex, stem)
-        if not is_stem_just_regex:
-            is_suffix_just_regex = re.match(just_regex, suffix)
-            if not is_suffix_just_regex:
+        is_stem_only_regex = is_only_regex(stem)
+        if is_stem_only_regex:
+            # something like "*.mp4" returns True
+            return bool(re.fullmatch(FILE_SUFFIX, suffix))  # nice suffix
+        
+        else:
+            is_suffix_only_regex = is_only_regex(suffix)
+            if not is_suffix_only_regex:
                 return True
     return False

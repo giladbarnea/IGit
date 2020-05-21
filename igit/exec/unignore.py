@@ -8,7 +8,6 @@ from igit.status import Status
 from igit.util import termcolor
 from igit.util.types import PathOrStr
 from igit.prompt import ask
-from igit.util.misc import unreq_opts
 
 
 @click.command()

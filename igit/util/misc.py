@@ -1,4 +1,3 @@
-import functools
 import os
 
 import re
@@ -37,7 +36,7 @@ def deephash(obj):
             if not obj:  # empty collection
                 return hash(repr(obj))  # unique for () vs [] vs {} etc
             try:
-                return deephash(frozenset(obj.items()))  # dict-like
+                return deephash(frozenset(sorted(obj.items())))  # dict-like
             except TypeError:  # nested, non dict-like unhashable items ie { 'foo': [[5]] }
                 lst = []
                 for x in obj:
@@ -50,39 +49,6 @@ def deephash(obj):
                 return deephash(tuple(lst))
         else:
             return hash(pformat(obj))
-
-
-def memoize(fun):
-    """A simple memoize decorator for functions supporting (hashable)
-    positional arguments.
-    It also provides a cache_clear() function for clearing the cache:
-
-    >>> @memoize
-    ... def foo()
-    ...     return 1
-        ...
-    >>> foo()
-    1
-    >>> foo.cache_clear()
-    >>>
-    """
-    
-    @functools.wraps(fun)
-    def wrapper(*args, **kwargs):
-        key = (args, frozenset(sorted(kwargs.items())))
-        try:
-            return cache[key]
-        except KeyError:
-            ret = cache[key] = fun(*args, **kwargs)
-            return ret
-    
-    def cache_clear():
-        """Clear cache."""
-        cache.clear()
-    
-    cache = {}
-    wrapper.cache_clear = cache_clear
-    return wrapper
 
 
 def is_pycharm():

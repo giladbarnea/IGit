@@ -1,22 +1,22 @@
-from mytool.term import color
+from igit.util import termcolor
 
 
 def test__replace_reset_code():
-    grey = color('grey', 'grey')
+    grey = termcolor.color('grey', 'grey')
     print('\n' + grey)
-    red = color('red', 'red')
-    mix1 = color(f'red{grey}red', 'red')
+    red = termcolor.color('red', 'red')
+    mix1 = termcolor.color(f'red{grey}red', 'red')
     print(mix1)
     assert mix1 == '\x1b[31mred\x1b[0m\x1b[2mgrey\x1b[0m\x1b[31mred\x1b[0m'
     assert mix1 == f'{red}{grey}{red}'
-    bold = color('bold', 'bold')
+    bold = termcolor.color('bold', 'bold')
     
-    mix2 = color(f'bold{grey}bold', 'bold')
+    mix2 = termcolor.color(f'bold{grey}bold', 'bold')
     print(mix2)
     assert mix2 == f'{bold}{grey}{bold}'
     
-    bold_satwhite = color('bold_satwhite', 'bold', 'sat white')
-    mix3 = color(f'bold_satwhite{grey}bold_satwhite', 'bold', 'sat white')
+    bold_satwhite = termcolor.color('bold_satwhite', 'bold', 'sat white')
+    mix3 = termcolor.color(f'bold_satwhite{grey}bold_satwhite', 'bold', 'sat white')
     print(mix3)
     print(repr(mix3))
     # needs to happen:

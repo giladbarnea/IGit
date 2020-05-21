@@ -3,15 +3,20 @@ import string
 from itertools import permutations, chain
 from typing import Sized, List, Tuple, Iterable
 
+from igit.util.cache import memoize
 from igit.util.regex import REGEX_CHAR
 
 
-def get_permutations(s: Sized, perm_len: int, fltr=None) -> List[str]:
+def get_permutations(s: Sized, perm_len: int = None, fltr=None) -> List[str]:
     """('ab', 2) → ['ab', 'ba']"""
-    if perm_len > len(s):
-        raise ValueError(f"arg perm_len={perm_len} greater than len(s)={len(s)}")
-    if perm_len <= 0:
-        raise ValueError(f"arg perm_len={perm_len} not positive")
+    s_len = len(s)
+    if perm_len is None:
+        perm_len = min(s_len, 7)  # in 2020, r > 7 is too slow
+    else:
+        if perm_len > s_len:
+            raise ValueError(f"arg perm_len={perm_len} greater than len(s)={s_len}")
+        if perm_len <= 0:
+            raise ValueError(f"arg perm_len={perm_len} not positive")
     ret = []
     for p in permutations(s, perm_len):
         joined = ''.join(p)
@@ -67,13 +72,19 @@ def split_iter_by(coll, fn) -> Tuple[Iterable, Iterable]:
     return truthies, falsies
 
 
-path_regexes = chain(*get_permutations_in_size_range('.*/\\', slice(5)))
-mixed_suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}|xml7381',
-                                                       slice(6),
-                                                       is_mixed_string),
-                       ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
-                        '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',
-                        'xml{1}', 'xml{,1}', 'xml{1,}$']
-                       )
+# path_regexes = chain(*get_permutations_in_size_range('.*/\\', slice(5)))
+@memoize
+def mixed_suffixes():
+    print('generating mixed_suffixes...')
+    mixed_suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}.xml7381',
+                                                           slice(6),
+                                                           is_mixed_string),
+                           ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
+                            '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',
+                            'xml{1}', 'xml{,1}', 'xml{1,}$']
+                           )
+    print('done generating mixed_suffixes')
+    return mixed_suffixes
+
 
 letters = string.ascii_letters + string.punctuation

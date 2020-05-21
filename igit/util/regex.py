@@ -1,20 +1,65 @@
 import re
 from re import Pattern
 
+from igit.util.cache import memoize
+
 FILE_CHAR: str = r'[\w\d-]'
 PATH_WILDCARD: str = r'[/\.\*\\]'
 NOT_PATH_WILDCARD: str = r'[^/\.\*\\]'
-FILE_SUFFIX: str = r'\.+[\w\d]*'
+FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,4}')
 # TRAILING_RE: Pattern = re.compile(fr"({PATH_WILDCARD}*{FILE_CHAR}*)({PATH_WILDCARD}*)")
 # LEADING_RE: Pattern = re.compile(fr'({PATH_WILDCARD}*)(.*$)')
 YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
-REGEX_CHAR = '?+*\\.()[]{}$'
+ONLY_REGEX: Pattern = re.compile(r'^[\^\.\\+\?\*\(\)\|\[\]\{\}\$]+$')
+ADV_REGEX_CHAR = '\\+()|[]{}$^'
+ADV_REGEX_2CHAR = ['.*', '.+', '.?']
+GLOB_CHAR = '?*'
+REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
 
 
-def endswith_regex(val: str):
+@memoize
+def is_only_regex(val: str):
     if not val:
         return False
-    return val[-1] in REGEX_CHAR
+    return bool(re.match(ONLY_REGEX, val))
+
+
+@memoize
+def endswith_regex(val: str):  # doesnt detect single dot
+    if not val:
+        return False
+    end = val[-1]
+    return end in GLOB_CHAR or end in ADV_REGEX_CHAR or val[-2:] in ADV_REGEX_2CHAR
+
+
+@memoize
+def has_regex(val: str):  # doesnt detect single dot
+    if not val:
+        return False
+    for i, c in enumerate(val):
+        if c in GLOB_CHAR or c in ADV_REGEX_CHAR:
+            return True
+        try:
+            if c + c[i + 1] in ADV_REGEX_2CHAR:
+                return True
+        except IndexError:
+            pass
+    return False
+
+
+@memoize
+def has_adv_regex(val: str):  # doesnt detect single dot
+    if not val:
+        return False
+    for i, c in enumerate(val):
+        if c in ADV_REGEX_CHAR:
+            return True
+        try:
+            if c + c[i + 1] in ADV_REGEX_2CHAR:
+                return True
+        except IndexError:
+            pass
+    return False
 
 
 def make_word_separators_optional(val):
