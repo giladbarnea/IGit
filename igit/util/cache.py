@@ -1,6 +1,8 @@
 import functools
 from typing import Optional, Callable, Any
 
+from igit.util.misc import deephash
+
 UNSPECIFIED = object()
 
 
@@ -90,14 +92,14 @@ def memoize(fun):
             try:
                 return cache[key]
             except TypeError as e:  # unhashable type: 'slice'
-                return cache[repr(key)]
+                return cache[deephash(key)]
         
         except KeyError:
             ret = fun(*args, **kwargs)
             try:
                 cache[key] = ret
             except TypeError as e:  # unhashable type: 'slice'
-                cache[repr(key)] = ret
+                cache[deephash(key)] = ret
             return ret
     
     def cache_clear():

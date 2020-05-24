@@ -22,7 +22,8 @@ from itertools import chain
 @memoize
 def get_end_with_re_split():
     print('generating end / dont end with re...')
-    end_with_re, dont_end_with_re = split_iter_by(mixed_suffixes(), lambda x: x[-1] in REGEX_CHAR)
+    end_with_re, dont_end_with_re = split_iter_by(mixed_suffixes(),
+                                                  lambda x: x[-1] in REGEX_CHAR)
     print('done generating end / dont end with re')
     return end_with_re, dont_end_with_re
 

@@ -16,6 +16,7 @@ def pull() -> int:
 
 
 def push() -> int:
+    # sp.check_output(shlex.split('git fetch')) == b'' when nothing to pull
     return sp.call('git push'.split())
 
 

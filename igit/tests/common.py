@@ -130,7 +130,7 @@ def split_iter_by(coll, fn) -> Tuple[Iterable, Iterable]:
 def mixed_suffixes():
     print('generating mixed_suffixes...')
     mixed_suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}.xml7381',
-                                                           slice(6),
+                                                           slice(5),
                                                            has_letters_and_punc),
                            ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
                             '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',

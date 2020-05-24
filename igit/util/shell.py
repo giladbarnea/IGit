@@ -38,3 +38,8 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
     if outs:
         return outs[0] if len(outs) == 1 else outs
     return ''
+
+
+def get_terminal_width():
+    from IPython.utils.terminal import get_terminal_size
+    return get_terminal_size()[0]

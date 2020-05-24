@@ -14,6 +14,16 @@ def _input(s):
     return input(termcolor.white(s))
 
 
+def try_convert_to_idx(ans_key: str):
+    """Returns either int, slice or as-is if conversion fails"""
+    if ans_key.isdigit():
+        return int(ans_key)
+    if ':' in ans_key:
+        start, _, stop = ans_key.partition(':')
+        return slice(int(start), int(stop))
+    return ans_key
+
+
 AnswerTuple = Tuple[str, Union[str, Special]]
 
 
@@ -88,15 +98,6 @@ class Choice(Prompt):
     answer: AnswerTuple
     
     @staticmethod
-    def _try_convert_to_idx(ans_key: str):
-        if ans_key.isdigit():
-            return int(ans_key)
-        if ':' in ans_key:
-            start, _, stop = ans_key.partition(':')
-            return slice(int(start), int(stop))
-        return ans_key
-    
-    @staticmethod
     def dialog_string(question: str, options: Options, *, allow_free_input=False) -> str:
         options_str = options.str(key="index")
         question_str = f'{question}'
@@ -115,14 +116,14 @@ class Choice(Prompt):
             if allow_free_input:
                 # * Free input
                 print(termcolor.green(f"Returning free input: (None, '{ans_key}')"))
-                ans_key = Choice._try_convert_to_idx(ans_key)
+                ans_key = try_convert_to_idx(ans_key)
                 return None, ans_key
             else:
                 while ans_key not in indexeditems:
                     print(termcolor.yellow(f"Unknown option: '{ans_key}'"))
                     ans_key = _input(question)
         ans_value = indexeditems[ans_key]
-        ans_key = Choice._try_convert_to_idx(ans_key)
+        ans_key = try_convert_to_idx(ans_key)
         return ans_key, ans_value
     
     def __init__(self, question: str, options: Options, *, allow_free_input=False):
