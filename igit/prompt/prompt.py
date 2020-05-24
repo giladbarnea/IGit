@@ -14,14 +14,27 @@ def _input(s):
     return input(termcolor.white(s))
 
 
-def try_convert_to_idx(ans_key: str):
-    """Returns either int, slice or as-is if conversion fails"""
-    if ans_key.isdigit():
-        return int(ans_key)
-    if ':' in ans_key:
-        start, _, stop = ans_key.partition(':')
+def try_convert_to_slice(val: str) -> slice:
+    val = val.strip()
+    if val.isdigit():
+        stop = int(val)
+        return slice(stop)
+    if ':' in val:
+        start, _, stop = val.partition(':')
         return slice(int(start), int(stop))
-    return ans_key
+    return val
+
+
+def try_convert_to_idx(val: str):
+    """Returns either int, slice or as-is if conversion fails"""
+    # TODO: handle 3, 3 ls, 3:2 ls, 3,4 ls, 3:6,7,8:9
+    val = val.strip()
+    if val.isdigit():
+        return int(val)
+    if ':' in val:
+        start, _, stop = val.partition(':')
+        return slice(int(start), int(stop))
+    return val
 
 
 AnswerTuple = Tuple[str, Union[str, Special]]
@@ -140,6 +153,7 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
         generic('This and that, continue?', 'yes', 'quit') → [y], [q]
     """
     # TODO: consider make Options ctor be able to handle Options('continue')
+    
     standard_opts, special_opts = map(list, partition(lambda o: o in Special.full_names(), options))
     options = Options(*standard_opts)
     if 'special_opts' in kwargs:
@@ -152,9 +166,16 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
         allow_free_input = kwargs.pop('allow_free_input')
     except KeyError:
         allow_free_input = False
+    if 'indexed' in kwargs:
+        raise NotImplementedError
+        indexed_options = Options(*kwargs.pop('indexed'))
+        options._indexeditems = indexed_options.indexeditems()
+        klass = Choice
+    else:
+        klass = Prompt
     options.set_kw_options(**kwargs)
     
-    return Prompt(prompt, options, allow_free_input=allow_free_input).answer
+    return klass(prompt, options, allow_free_input=allow_free_input).answer
 
 
 @overload

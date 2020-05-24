@@ -9,7 +9,7 @@ ok = input(f'found_packages:\n{repr(found_packages)}\ncontinue? y/n ').lower() =
 if not ok:
     sys.exit()
 setup(name='IGit',
-      version='1.0.2',
+      version='1.0.3',
       description='Like IPython, for Git',
       author='Gilad Barnea',
       author_email='giladbrn@gmail.com',
