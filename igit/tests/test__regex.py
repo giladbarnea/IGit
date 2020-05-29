@@ -133,7 +133,8 @@ def test__is_only_regex__nonregex_char():
 
 def test__is_only_regex__regex_char():
     for c in REGEX_CHAR:
-        assert is_only_regex(c) is True
+        actual = is_only_regex(c)
+        assert actual is True
 
 
 def test__is_only_regex__regex_string():
@@ -249,11 +250,25 @@ def test__dont_strip_trailing__nonpath_regex():
         assert actual == name
 
 
-def test__dont_strip_trailing__manual():
+def test__dont_strip_trailing__nonregex():
     for nonreg in nonregex:
         name = f'foo{nonreg}'
         actual = strip_trailing_path_wildcards(name)
         assert actual == name
+
+
+def test__dont_strip_leading__nonregex():
+    for nonreg in nonregex:
+        name = f'{nonreg}foo'
+        actual = strip_leading_path_wildcards(name)
+        assert actual == name
+
+
+def test__dont_strip_leading__manual():
+    vals = ('.git',)
+    for val in vals:
+        actual = strip_leading_path_wildcards(val)
+        assert actual == val
 
 
 def test__strip_leading_path_wildcards__dir():

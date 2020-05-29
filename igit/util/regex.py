@@ -1,17 +1,16 @@
 import re
 from re import Pattern
 
-from igit.util.cache import memoize
-
+BACKSLASH: str = '\\'
 FILE_CHAR: str = r'[\w\d-]'
-PATH_WILDCARD: str = r'[/\.\*\\]'
-NOT_PATH_WILDCARD: str = r'[^/\.\*\\]'
+PATH_WILDCARD: str = fr'[\.\*\\]'
+NOT_PATH_WILDCARD: str = r'[^\.\*\\]'
 FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,4}')
 # TRAILING_RE: Pattern = re.compile(fr"({PATH_WILDCARD}*{FILE_CHAR}*)({PATH_WILDCARD}*)")
 # LEADING_RE: Pattern = re.compile(fr'({PATH_WILDCARD}*)(.*$)')
 YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
-ONLY_REGEX: Pattern = re.compile(r'[\^\.\\+\?\*\(\)\|\[\]\{\}\<\>\$]+')
-ADV_REGEX_CHAR = '\\+()|[]{}$^<>'
+ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{\}<>$]+')
+ADV_REGEX_CHAR = BACKSLASH + '+()|[]{}$^<>'
 ADV_REGEX_2CHAR = ['.*', '.+', '.?']
 GLOB_CHAR = '?*'
 REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
@@ -76,7 +75,12 @@ def strip_leading_path_wildcards(val):
     """Strips any [/.*\\] from the beginning. Doesn't strip from the end.
     Use with dirs or files.
     Handles file extensions well (i.e. 'py_venv.xml' keeps suffix)"""
-    return re.match(fr'({PATH_WILDCARD}*)(.*$)', val).groups()[1]
+    match = re.match(fr'({PATH_WILDCARD}*)(.*$)', val)
+    path_wildcard, rest = match.groups()
+    if path_wildcard == '.':
+        # not regex if dot isn't accompanied by other chars; '.git' has no regex
+        return val
+    return rest
 
 
 def strip_surrounding_path_wildcards(val):
