@@ -5,34 +5,24 @@ from types import ModuleType
 from typing import List, Union
 
 from igit.util import termcolor
+from pprint import pformat
 
 FrameSummaries = List[List[Union[int, traceback.FrameSummary]]]
 
 
 class ExcHandler:
-    def __init__(self, exc: Exception = None, *, capture_locals=True):
+    def __init__(self, exc: Exception = None, *, capture_locals=True, formatter=repr):
         """
-        Extracts nicely formatted additional data about the exception. Example:
+        Provides additional data about the exception with extra functionality, including frame locals. Example:
         ::
             except Exception as e:
-                logger.exception('Critical error')  # logs ExcHandler.full() automatically
-
-                # OR
-
-                logger.error('Critical error', exc_info=True)  # logs ExcHandler.summary()
-
-            ...
-
-            try:
-                raise PricingHeaderNotFound('no gw pricing config')
-            except Exception as e:
-                msg = logger.warning(exc_info=True)  # logs ExcHandler.short() and returns its output
-                insertRejectDetails(msg)
+                print(ExcHandler(e).full())
                 """
         # TODO: 1. support for *args then print arg names and values like in 'printdbg'
         #  2. handle 'raise ... from e' better. 'Responsible code: raise ...' isnt interesting (use e.__cause__)
         #  3. if exception raised deliberately ("raise ValueError(...)"), get earlier frame
         self.exc = None  # declare first thing in case anything fails
+        self._formatter = formatter
         try:
             
             if exc:
@@ -154,8 +144,7 @@ class ExcHandler:
             excArgs.append(arg)
         return ", ".join(excArgs)
     
-    @staticmethod
-    def _format_locals(lokals: dict) -> str:
+    def _format_locals(self, lokals: dict) -> str:
         formatted = ""
         for name, val in lokals.items():
             if name.startswith('__') or isinstance(val, ModuleType):
@@ -163,8 +152,9 @@ class ExcHandler:
             if inspect.isfunction(val):
                 print(termcolor.lightgrey(f'skipped function: {name}'))
                 continue
-            typ = type(val)
-            val = str(val)
+            
+            typ = self._formatter(type(val))
+            val = self._formatter(val)
             
             if val.startswith('typing'):
                 continue
@@ -212,6 +202,14 @@ class ExcHandler:
     def full(self, limit: int = None):
         """Prints the summary, whole stack and local variables at the scope of exception.
         Limit is 0-based, from recent to deepest (limit=0 means only first frame)"""
+        import os
+        try:
+            termwidth, _ = os.get_terminal_size()
+            print(f'termwidth: {termwidth}')
+            if not termwidth:
+                termwidth = 80
+        except Exception as e:
+            termwidth = 80
         if not self.exc:
             return ExcHandler._handle_bad_call_context()
         description = self.summary()
@@ -220,13 +218,20 @@ class ExcHandler:
             if honor_limit and i > limit:
                 break
             # from recent to deepest
-            description += f'\nFile "{fs.filename}", line {fs.lineno} in {fs.name}()\n\t{fs.line}'
+            description += f'\nFile "{fs.filename}", line {fs.lineno} in {termcolor.white(fs.name + "()")}\n\t{fs.line}'
             if fs.locals is not None:
-                description += f'\nLocals:\n{ExcHandler._format_locals(fs.locals)}'
-        return f'\n{description}\n'
+                description += f'\nLocals:\n{self._format_locals(fs.locals)}'
+        return f'\n{"-" * termwidth}\n\n{description}\n{"-" * termwidth}\n'
 
 
-def investigate(loglevel: str = 'INFO', *, logArgs=True, logReturn=True, logExc=True, showLocalsOnExc=True, showLocalsOnReturn=False):
+def investigate(loglevel: str = 'INFO',
+                *,
+                logArgs=True,
+                logReturn=True,
+                logExc=True,
+                showLocalsOnExc=True,
+                showLocalsOnReturn=False,
+                formatter=pformat):
     """
     A decorator that logs common debugging information, like formatted exceptions before they're thrown, argument names and values, return value etc.
     ::
@@ -238,14 +243,14 @@ def investigate(loglevel: str = 'INFO', *, logArgs=True, logReturn=True, logExc=
     def wrapper(fn):
         
         def decorator(*fnArgs, **fnKwargs):
-            term.set_option(print=True)
+            termcolor.set_option(print=True)
             fnname = fn.__qualname__
             if '.' in fnname:
                 identifier = fnname
             else:
                 identifier = f'{inspect.getmodulename(inspect.getmodule(fn).__file__)}.{fnname}'
             
-            term.green(f'\nentered {identifier}()')
+            termcolor.green(f'\nentered {identifier}()')
             
             if logArgs:
                 # create a pretty str representation of the function arguments
@@ -272,15 +277,15 @@ def investigate(loglevel: str = 'INFO', *, logArgs=True, logReturn=True, logExc=
                         args_str += f', {k}={repr(v)}'
                 
                 if args_str:
-                    term.green(f'args: {fnname}({args_str})')
+                    termcolor.green(f'args: {fnname}({args_str})')
                 else:
-                    term.green(f'no args passed')
+                    termcolor.green(f'no args passed')
             
             try:
                 retval = fn(*fnArgs, **fnKwargs)
                 if logReturn:
                     
-                    pretty = pformat(retval, depth=1)
+                    pretty = formatter(retval, depth=1)
                     if showLocalsOnReturn:
                         # try:
                         #     raise Exception("dummy")
@@ -292,20 +297,19 @@ def investigate(loglevel: str = 'INFO', *, logArgs=True, logReturn=True, logExc=
                         pass
                     if len(pretty) > 300:  # don't clutter
                         pretty = f'{pretty[:300]}...'
-                    term.green(f'Returning {pretty}')
+                    termcolor.green(f'Returning {pretty}')
                 
                 else:
-                    term.green(f'exited {identifier}()')
+                    termcolor.green(f'exited {identifier}()')
                 
                 return retval
             except Exception as e:
                 if logExc:
-                    e_handler = ExcHandler(e)
-                    term.red(e_handler.full())
+                    print(ExcHandler(e).full())
                 
                 raise e
             finally:
-                term.set_option(print=False)
+                termcolor.set_option(print=False)
             #     logger.handlers[0].setFormatter(oldformatter)
         
         return decorator

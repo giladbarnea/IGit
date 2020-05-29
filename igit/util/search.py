@@ -85,7 +85,7 @@ def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
 
 
 def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
-    if not collection:
+    if not collection or not any(item for item in collection):
         raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
     far_matches = Matches(maxsize=5)
@@ -104,11 +104,12 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         
         # * good (below cutoff)
         near_matches.append(item, score)
-    
+    if not near_matches and not far_matches:
+        print(termcolor.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
     if near_matches:
-        print(termcolor.grey(f'fuzzy() → near_matches'))
+        print(termcolor.grey(f'fuzzy() → near_matches: {near_matches}\n\tfar_matches: {far_matches}'))
         return near_matches
-    print(termcolor.grey(f'fuzzy() → far_matches'))
+    print(termcolor.grey(f'fuzzy() → far_matches: {far_matches}\n\tnear_matches: {near_matches}'))
     return far_matches
 
 
@@ -158,7 +159,7 @@ def iter_maybes(keyword: str, collection: List[T], *extra_options, criterion: Se
     """Doesn't prompt of any kind. Yields a `[...], is_last` tuple."""
     is_maybe = _create_is_maybe_predicate(criterion)
     
-    print(termcolor.yellow(f"assuming '{criterion}' relationship between '{keyword}' and requested item..."))
+    print(termcolor.yellow(f"trying to get '{keyword}' by '{criterion}'..."))
     maybes = [item for item in collection if is_maybe(item, keyword)]
     yield maybes, False
     

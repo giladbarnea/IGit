@@ -7,7 +7,7 @@ import subprocess as sp
 
 
 def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
-           input: bytes = None, stdout=sp.PIPE, stderr=sp.DEVNULL) -> Union[str, List[str]]:
+           input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
     outs = []
     for cmd in cmds:
         if printcmd:
@@ -24,11 +24,18 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
                 out = proc.stdout.decode().strip()
             else:
                 out = None
+            
+            if proc.stderr:
+                stderr = proc.stderr.decode().strip()
+                if stderr.endswith('Permission denied'):
+                    raise PermissionError(stderr)
+                print(termcolor.yellow(stderr))
+        
         except Exception as e:
-            print(termcolor.yellow(f'FAILED: {cmd}\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
+            print(termcolor.yellow(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
             if raiseonfail:
                 hdlr = ExcHandler(e)
-                print(termcolor.red(hdlr.full()))
+                print(hdlr.full())
                 raise e
         else:
             if out:

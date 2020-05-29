@@ -4,8 +4,9 @@ import sys
 import click
 from igit import prompt, git
 from igit.ignore import Gitignore
+from igit.status import Status
 from igit.util import termcolor, shell
-from igit.util.misc import unquote
+from igit.util.misc import unquote, try_convert_to_idx
 from igit.util.path import ExPath
 
 
@@ -19,9 +20,17 @@ def main(paths):
     
     cmds = []
     gitignore = Gitignore()
+    status = Status()
     existing_paths = []
     for p in paths:
-        p = ExPath(unquote(p))
+        try:
+            # * maybe index
+            converted = try_convert_to_idx(p)
+            print(termcolor.lightgrey(f'p: {p}, converted: {converted}'))
+            p = status[converted]
+        except TypeError as e:
+            # * not index, just str
+            p = ExPath(unquote(p))
         
         if not p.exists():
             print(f"{termcolor.yellow(p)} does not exist, skipping")

@@ -9,12 +9,15 @@ class Gitignore:
     def __init__(self):
         self.file = ExPath('.gitignore')
     
+    def __getitem__(self, item):
+        return self.paths[item]
+    
     @cachedprop
     def paths(self):
         with self.file.open(mode='r') as file:
             data = file.read()
         lines = data.splitlines()
-        paths = [ExPath(x) for x in filter(bool,lines)]
+        paths = [ExPath(x) for x in filter(bool, lines)]
         return paths
     
     def _should_be_ignored(self, p: ExPath):

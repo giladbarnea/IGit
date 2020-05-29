@@ -6,7 +6,7 @@ from typing import Sized, List, Tuple, Iterable
 from igit.util.cache import memoize
 from igit.util.regex import REGEX_CHAR
 
-DOT_OR_QUOTE: re.Pattern = re.compile(r'[\.\'"]+')
+DOT_OR_QUOTE: re.Pattern = re.compile(r'[.\'"]+')
 letters_and_punc = string.ascii_letters + string.punctuation
 nonregex = string.ascii_letters + string.digits + ''.join(set(string.punctuation) - set(REGEX_CHAR) - set('.'))
 
@@ -125,16 +125,30 @@ def split_iter_by(coll, fn) -> Tuple[Iterable, Iterable]:
     return truthies, falsies
 
 
-# path_regexes = chain(*get_permutations_in_size_range('.*/\\', slice(5)))
+def forslash_always_with_dot_or_star(s):
+    if '/' not in s:
+        return True
+    return '.' in s or '*' in s
+
+
+@memoize
+def path_regexes():
+    print('generating path_regexes...')
+    regexes = chain(*get_permutations_in_size_range('.*/\\', slice(5), forslash_always_with_dot_or_star))
+    print('done getting path_regexes')
+    assert all(forslash_always_with_dot_or_star(reg) for reg in regexes)  # this is necessary for some reason?
+    return regexes
+
+
 @memoize
 def mixed_suffixes():
     print('generating mixed_suffixes...')
-    mixed_suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}.xml7381',
-                                                           slice(5),
-                                                           has_letters_and_punc),
-                           ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
-                            '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',
-                            'xml{1}', 'xml{,1}', 'xml{1,}$']
-                           )
+    suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}.xml7381',
+                                                     slice(5),
+                                                     has_letters_and_punc),
+                     ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
+                      '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',
+                      'xml{1}', 'xml{,1}', 'xml{1,}$']
+                     )
     print('done generating mixed_suffixes')
-    return mixed_suffixes
+    return suffixes

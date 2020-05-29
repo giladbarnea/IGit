@@ -1,9 +1,10 @@
 import re
 from typing import List, Dict
 
+from igit.debug import ExcHandler
 from igit.util.search import search_and_prompt
 
-from igit.util import shell, termcolor
+from igit.util import shell, termcolor, cachedprop
 
 
 class BranchTree:
@@ -19,34 +20,26 @@ class BranchTree:
     _fetched = False
     _version = ''
     
-    @property
+    @cachedprop
     def current(self) -> str:
-        if not self._current:
-            self._current = shell.tryrun('git branch --show-current')
-        return self._current
+        return shell.tryrun('git branch --show-current', printcmd=False, printout=False)
     
-    @property
+    @cachedprop
     def branches(self) -> dict:
-        if not self._branches:
-            if not self._fetched:
-                # TODO: something global
-                shell.tryrun('git fetch --all', printout=False)
-                self._fetched = True
-            lines = shell.tryrun('git ls-remote --heads origin', printout=False).splitlines()
-            self._branches = dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
-        return self._branches
+        """{'master': <SHA1>}"""
+        if not self._fetched:
+            shell.tryrun('git fetch --all', printcmd=False, printout=False)
+            self._fetched = True
+        lines = shell.tryrun('git ls-remote --heads origin', printout=False).splitlines()
+        return dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
     
-    @property
+    @cachedprop
     def branchnames(self) -> List[str]:
-        if not self._branchnames:
-            self._branchnames = list(self.branches.keys())
-        return self._branchnames
+        return list(self.branches.keys())
     
-    @property
+    @cachedprop
     def branchhashes(self) -> List[str]:
-        if not self._branchhashes:
-            self._branchhashes = list(self.branches.values())
-        return self._branchhashes
+        return list(self.branches.values())
     
     @property
     def version(self) -> str:
@@ -59,27 +52,23 @@ class BranchTree:
             _vernum = _major + _minor
             return _vernum
         
-        if not self._version:
-            verbranches = []
-            
-            for b in self.branches:
-                if re.fullmatch(r'recon-[\w\-_]*\d*(\.\d*){2,4}$', b):
-                    verbranches.append(b)
-            if verbranches:
-                max_vernum: Dict[float, int] = {}
-                for i, verbrch in enumerate(verbranches):
-                    try:
-                        verstr: str = re.search(r'(\d*(\.\d*){2,4}$)', verbrch).groups()[0].replace('.', '')
-                        vernum = _verstr_to_vernum(verstr)
-                        if not max_vernum or next(iter(max_vernum)) < vernum:
-                            max_vernum = {vernum: i}
-                    except Exception as e:
-                        continue
-                if not max_vernum:
-                    self._version = verbranches[-1]
-                else:
-                    self._version = verbranches[next(iter(max_vernum.values()))]
-        return self._version
+        verbranches = []
+        VER_RE = re.compile(r'(\d*(\.\d*){2,4}$)')
+        if verbranches:
+            max_vernum: Dict[float, int] = {}
+            for i, verbrch in enumerate(verbranches):
+                try:
+                    verstr: str = re.search(VER_RE, verbrch).groups()[0].replace('.', '')
+                    vernum = _verstr_to_vernum(verstr)
+                    if not max_vernum or next(iter(max_vernum)) < vernum:
+                        max_vernum = {vernum: i}
+                except Exception as e:
+                    print('BranchTree.version()', ExcHandler(e).summary())
+                    continue
+            if not max_vernum:
+                return verbranches[-1]
+            else:
+                return verbranches[next(iter(max_vernum.values()))]
     
     def search(self, keyword: str) -> str:
         # TODO: option to get branch date if ambiguous etc

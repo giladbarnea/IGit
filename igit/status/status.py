@@ -2,6 +2,7 @@ import os
 
 from typing import Tuple, List, Dict
 
+from igit.util.misc import try_convert_to_slice
 from igit.util.path import ExPath as Path
 from igit.util.types import PathOrStr
 from igit.util import shell, termcolor, cachedprop
@@ -17,13 +18,8 @@ class Status:
     def __getitem__(self, item) -> List[PathOrStr]:
         # TODO: account for deleted
         try:
-            if ':' in item:
-                start, _, stop = item.partition(':')
-                index = slice(int(start), int(stop))
-                return self.files[index]
-            else:
-                index = int(item)
-                return [self.files[index]]
+            slyce = try_convert_to_slice(item)
+            return self.files[slyce]
         except ValueError as e:  # not an index
             return [self.search(item)]
     

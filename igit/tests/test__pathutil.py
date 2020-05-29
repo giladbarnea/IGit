@@ -12,7 +12,7 @@ def test__has_file_suffix__with_suffix__startswith_path_reg():
     # e.g. '.*/py_venv.xml'. should return has suffix (True)
     with_suffix = 'py_venv.xml'
     assert has_file_suffix(with_suffix) is True
-    for reg in path_regexes:
+    for reg in path_regexes():
         val = f'{reg}{with_suffix}'
         actual = has_file_suffix(val)
         assert actual is True
@@ -22,7 +22,7 @@ def test__has_file_suffix__with_suffix__no_stem__startswith_path_reg():
     # e.g. '*.xml'. should return has suffix (True)
     with_suffix = '*.xml'
     assert has_file_suffix(with_suffix) is True
-    for reg in path_regexes:
+    for reg in path_regexes():
         val = f'{reg}{with_suffix}'
         actual = has_file_suffix(val)
         assert actual is True
@@ -44,7 +44,7 @@ def test__has_file_suffix__everything_mixed_with_regex():
         for suffix in mixed_suffixes():
             name = f'{stem}.{suffix}'
             assert has_file_suffix(name) is True
-            for reg in path_regexes:
+            for reg in path_regexes():
                 val = f'{reg}{name}'
                 actual = has_file_suffix(val)
                 assert actual is True
@@ -54,7 +54,7 @@ def test__has_file_suffix__no_suffix__startswith_path_reg():
     # e.g. '.*/py_venv'. should return no suffix (False)
     no_suffix = 'py_venv'
     assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes:
+    for reg in path_regexes():
         val = f'{reg}{no_suffix}'
         actual = has_file_suffix(val)
         assert actual is False
@@ -64,7 +64,7 @@ def test__has_file_suffix__no_suffix__endswith_path_reg():
     # e.g. 'py_venv.*/'. should return no suffix (False)
     no_suffix = 'py_venv'
     assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes:
+    for reg in path_regexes():
         val = f'{no_suffix}{reg}'
         actual = has_file_suffix(val)
         assert actual is False
@@ -74,8 +74,8 @@ def test__has_file_suffix__no_suffix__surrounded_by_path_reg():
     # e.g. '.*/py_venv.*/'. should return no suffix (False)
     no_suffix = 'py_venv'
     assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes:
-        for morereg in path_regexes:
+    for reg in path_regexes():
+        for morereg in path_regexes():
             val = f'{morereg}{no_suffix}{reg}'
             actual = has_file_suffix(val)
             assert actual is False

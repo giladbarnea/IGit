@@ -52,7 +52,10 @@ def deephash(obj):
 
 
 def is_pycharm():
-    return 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
+    is_pycharm = 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
+    if is_pycharm:
+        print('pycharm!')
+    return is_pycharm
 
 
 def getsecret(label: str) -> str:
@@ -63,3 +66,31 @@ def getsecret(label: str) -> str:
     for item in col.get_all_items():
         if item.get_label() == label:
             return item.get_secret().decode()
+
+
+def try_convert_to_slice(val: str) -> slice:
+    """Returns either slice or as-is if conversion fails"""
+    try:
+        val = val.strip()
+        if val.isdigit():
+            stop = int(val) + 1
+            return slice(stop)
+        if ':' in val:
+            start, _, stop = val.partition(':')
+            return slice(int(start), int(stop))
+        return val
+    except AttributeError as e:  # AttributeError: 'slice' object has no attribute 'strip'
+        return val
+
+
+def try_convert_to_idx(val: str) -> int:
+    """Returns either int or as-is if conversion fails"""
+    try:
+        val = val.strip()
+        if val.isdigit():
+            return int(val)
+        if ':' in val:
+            raise ValueError(f"':' in val: {val}. Use try_convert_to_slice()")
+        return val
+    except AttributeError as e:
+        return val

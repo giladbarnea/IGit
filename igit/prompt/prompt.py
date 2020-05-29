@@ -1,6 +1,7 @@
 import re
 from typing import Union, Tuple, Any, overload
 
+from igit.util.misc import try_convert_to_idx
 from more_itertools import partition
 
 from igit.debug.err import DeveloperError
@@ -12,29 +13,6 @@ from igit.util.regex import YES_OR_NO
 
 def _input(s):
     return input(termcolor.white(s))
-
-
-def try_convert_to_slice(val: str) -> slice:
-    val = val.strip()
-    if val.isdigit():
-        stop = int(val)
-        return slice(stop)
-    if ':' in val:
-        start, _, stop = val.partition(':')
-        return slice(int(start), int(stop))
-    return val
-
-
-def try_convert_to_idx(val: str):
-    """Returns either int, slice or as-is if conversion fails"""
-    # TODO: handle 3, 3 ls, 3:2 ls, 3,4 ls, 3:6,7,8:9
-    val = val.strip()
-    if val.isdigit():
-        return int(val)
-    if ':' in val:
-        start, _, stop = val.partition(':')
-        return slice(int(start), int(stop))
-    return val
 
 
 AnswerTuple = Tuple[str, Union[str, Special]]

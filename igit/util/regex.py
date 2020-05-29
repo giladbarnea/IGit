@@ -51,7 +51,7 @@ def has_adv_regex(val: str):  # doesnt detect single dot
         if c in ADV_REGEX_CHAR:
             return True
         try:
-            if c + c[i + 1] in ADV_REGEX_2CHAR:
+            if c + val[i + 1] in ADV_REGEX_2CHAR:
                 return True
         except IndexError:
             pass
@@ -67,7 +67,7 @@ def strip_trailing_path_wildcards(val):
     Use with dirs.
     Doesn't handle file extensions well (i.e. 'py_venv.xml' loses suffix)"""
     
-    match = re.match(rf"([*.\\/]*[\w\d\-]*)([*.\\/]*)", val)
+    match = re.match(rf"([*.\\/]*[^*.\\]*)([*.\\/]*)", val)
     groups = match.groups()
     return groups[0]
 

@@ -24,3 +24,4 @@ def test__replace_reset_code():
     assert mix3 == f'{bold_satwhite}{grey}{bold_satwhite}'
     
     # {c(f'pass a str {i("args", False)}. like running {i("/bin/sh -c ...", False)}')}
+    # {c(f'-s {i("strategy", False)} --strategy={i("strategy", False)}')}

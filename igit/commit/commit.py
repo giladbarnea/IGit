@@ -1,7 +1,7 @@
 import re
 from typing import List
 
-from igit.util import shell
+from igit.util import shell, cachedprop
 
 
 class CommitTree:
@@ -11,31 +11,24 @@ class CommitTree:
     _commithashes = []
     _fetched = False
     
-    @property
+    @cachedprop
     def current(self) -> str:
-        if not self._current:
-            self._current = shell.tryrun('git rev-parse HEAD')
-        return self._current
+        return shell.tryrun('git rev-parse HEAD', printcmd=False, printout=False)
     
-    @property
+    @cachedprop
     def commits(self) -> dict:
-        if not self._commits:
-            if not self._fetched:
-                shell.tryrun('git fetch --all', printout=False)
-                self._fetched = True
-            lines = shell.tryrun('git log --pretty=oneline', printout=False).splitlines()
-            
-            self._commits = dict(reversed(re.split(r' ', line, maxsplit=1)) for line in lines)
-        return self._commits
+        if not self._fetched:
+            shell.tryrun('git fetch --all', printcmd=False, printout=False)
+            self._fetched = True
+        lines = shell.tryrun('git log --pretty=oneline', printcmd=False, printout=False).splitlines()
+        
+        # TODO: better to just line.split(' ', maxsplit=1)?
+        return dict(reversed(re.split(r' ', line, maxsplit=1)) for line in lines)
     
-    @property
+    @cachedprop
     def commitnames(self) -> List[str]:
-        if not self._commitnames:
-            self._commitnames = list(self.commits.keys())
-        return self._commitnames
+        return list(self.commits.keys())
     
-    @property
+    @cachedprop
     def commithashes(self) -> List[str]:
-        if not self._commithashes:
-            self._commithashes = list(self.commits.values())
-        return self._commithashes
+        return list(self.commits.values())

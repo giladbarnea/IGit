@@ -20,6 +20,7 @@ def is_branch(val):
 @click.option('--exclude', '-e', default=None, required=False, show_default=True)
 def main(items: Tuple[str], exclude):
     # git diff origin/master -- . :(exclude)*.csv :(exclude)*.ipynb :(exclude)*.sql :!report_validators/*
+    # or ':!*.js' ':!*.d.ts' ':!*.js.map'
     # everything is space separated, like grepf.py
     # TODO: in exclude, :!report_validators/* if dir else :!*.ipynb
     #  same for files
