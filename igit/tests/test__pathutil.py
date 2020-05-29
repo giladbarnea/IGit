@@ -1,8 +1,8 @@
 from pathlib import Path
 
+import pytest
 from igit.tests.common import get_permutations_in_size_range, has_letters_and_punc, path_regexes, mixed_suffixes
 from igit.util.path import has_file_suffix, ExPath
-
 
 # ** has_file_suffix
 from igit.util.regex import REGEX_CHAR
@@ -21,7 +21,8 @@ def test__has_file_suffix__with_suffix__startswith_path_reg():
 def test__has_file_suffix__with_suffix__no_stem__startswith_path_reg():
     # e.g. '*.xml'. should return has suffix (True)
     with_suffix = '*.xml'
-    assert has_file_suffix(with_suffix) is True
+    actual = has_file_suffix(with_suffix)
+    assert actual is True
     for reg in path_regexes():
         val = f'{reg}{with_suffix}'
         actual = has_file_suffix(val)
@@ -43,7 +44,8 @@ def test__has_file_suffix__everything_mixed_with_regex():
     for stem in mixed_stems:
         for suffix in mixed_suffixes():
             name = f'{stem}.{suffix}'
-            assert has_file_suffix(name) is True
+            actual = has_file_suffix(name)
+            assert actual is True
             for reg in path_regexes():
                 val = f'{reg}{name}'
                 actual = has_file_suffix(val)
@@ -101,9 +103,12 @@ def test__ExPath__subpath_of__sanity():
 def test__ExPath__parent_of__wildcard():
     home = ExPath('/home/*')
     gilad = ExPath('/home/gilad')
-    assert home.parent_of(gilad)
-    assert home.parent_of('/home/gilad')
-    assert home.parent_of(Path('/home/gilad'))
+    home_parent_of_gilad = home.parent_of(gilad)
+    assert home_parent_of_gilad is True
+    home_parent_of_home_gilad = home.parent_of('/home/gilad')
+    assert home_parent_of_home_gilad
+    home_parent_of_Path_home_gilad = home.parent_of(Path('/home/gilad'))
+    assert home_parent_of_Path_home_gilad
 
 
 def test__ExPath__subpath_of__wildcard():

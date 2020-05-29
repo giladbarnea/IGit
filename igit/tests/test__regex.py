@@ -155,6 +155,13 @@ def test__is_only_regex__mixed_string():
         assert is_only_regex(stryng) is False
 
 
+def test__is_only_regex__truth_cases__manual():
+    vals = ('.?', '\\.?')
+    for val in vals:
+        actual = is_only_regex(val)
+        assert actual is True
+
+
 # ** endswith_regex
 def test__endswith_regex__false_cases():
     for x in dont_end_with_re():

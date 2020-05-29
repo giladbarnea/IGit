@@ -145,10 +145,11 @@ def mixed_suffixes():
     print('generating mixed_suffixes...')
     suffixes = chain(*get_permutations_in_size_range(f'{REGEX_CHAR}.xml7381',
                                                      slice(5),
-                                                     has_letters_and_punc),
+                                                     lambda s: has_letters_and_punc(s) and not s.endswith('.')),
                      ['xm?l', 'xm+l', 'xm.?', 'xm.+l', 'x?ml*', '[xm]*l',
-                      '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$', '$',
+                      '(x)+ml', '(x|m)l', 'x[ml]*', '(d\\.)?ts', 'x?', 'x$',
                       'xml{1}', 'xml{,1}', 'xml{1,}$']
                      )
     print('done generating mixed_suffixes')
+    assert all(has_letters_and_punc(s) for s in suffixes)
     return suffixes
