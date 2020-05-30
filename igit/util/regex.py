@@ -1,6 +1,8 @@
 import re
 from re import Pattern
 
+from igit.util import termcolor
+
 BACKSLASH: str = '\\'
 FILE_CHAR: str = r'[\w\d-]'
 PATH_WILDCARD: str = fr'[\.\*\\]'
@@ -68,6 +70,9 @@ def strip_trailing_path_wildcards(val):
     
     match = re.match(rf"([*.\\/]*[^*.\\]*)([*.\\/]*)", val)
     groups = match.groups()
+    if ''.join(groups) != val:
+        print(termcolor.yellow(f"strip_trailing_path_wildcards({repr(val)}): regex stripped away too much, returning as-is. groups: {', '.join(map(repr, groups))}"))
+        return val
     return groups[0]
 
 

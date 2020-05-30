@@ -124,8 +124,7 @@ def _choose_from_many(collection, *promptopts) -> Optional[str]:
         # *  single
         if prompt.ask(f'found: {collection[0]}. proceed with this?', no='try harder', special_opts=('debug', 'quit')):
             return collection[0]
-        else:
-            return None
+        return None
     return None
 
 

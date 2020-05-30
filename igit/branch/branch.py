@@ -30,7 +30,7 @@ class BranchTree:
         if not self._fetched:
             shell.tryrun('git fetch --all', printcmd=False, printout=False)
             self._fetched = True
-        lines = shell.tryrun('git ls-remote --heads origin', printout=False).splitlines()
+        lines = shell.tryrun('git ls-remote --heads origin', printcmd=False, printout=False).splitlines()
         return dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
     
     @cachedprop
@@ -73,7 +73,7 @@ class BranchTree:
     def search(self, keyword: str) -> str:
         # TODO: option to get branch date if ambiguous etc
         choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
-        print(termcolor.green(f'choice: {choice}'))
+        print(termcolor.green(f'BranchTree.search("{keyword}") → "{choice}"'))
         return choice
 
 

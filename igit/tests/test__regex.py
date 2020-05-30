@@ -210,7 +210,6 @@ def test__strip_trailing_path_wildcards():
         assert actual == expected
 
 
-@pytest.mark.skip("until strip_trailing_path_wildcards() doesnt handle file extensions well, this fails")
 def test__strip_trailing_path_wildcards__file__basename__with_suffix():
     name = 'py_venv.xml'
     actual = strip_trailing_path_wildcards(name)
@@ -242,7 +241,6 @@ def test__dont_strip_leading__nonpath_regex():
         assert actual == name
 
 
-@pytest.mark.skip("this fails and not sure why it's even needed")
 def test__dont_strip_trailing__nonpath_regex():
     names = ('read$', 'read[.]*', 'read[./]*', 'read/?', 'reads+')
     for name in names:

@@ -7,7 +7,7 @@ import subprocess as sp
 
 
 def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
-           input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
+           inpoot: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
     outs = []
     for cmd in cmds:
         if printcmd:
@@ -16,8 +16,8 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
         try:
             runargs = dict(stdout=stdout, stderr=stderr)
             # runargs = dict()
-            if input:
-                runargs['input'] = input
+            if inpoot:
+                runargs['input'] = inpoot
             
             proc = sp.run(shlex.split(cmd), **runargs)
             if proc.stdout:
@@ -33,10 +33,11 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
         
         except Exception as e:
             print(termcolor.yellow(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
+            hdlr = ExcHandler(e)
             if raiseonfail:
-                hdlr = ExcHandler(e)
                 print(hdlr.full())
                 raise e
+            print(hdlr.summary())
         else:
             if out:
                 if printout:
