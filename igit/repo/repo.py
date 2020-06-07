@@ -13,7 +13,7 @@ class Repo:
     @property
     def url(self) -> str:
         if not self._url:
-            self._url = shell.tryrun('git remote get-url origin', printout=False, printcmd=False)
+            self._url = shell.runquiet('git remote get-url origin')
         return self._url
     
     @property

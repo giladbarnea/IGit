@@ -15,6 +15,6 @@ setup(name='IGit',
       author_email='giladbrn@gmail.com',
 
       packages=found_packages,
-      install_requires=['requests', 'click', 'fuzzysearch', 'prompt_toolkit'],
+      install_requires=['requests', 'click', 'fuzzysearch', 'prompt_toolkit', 'traitlets'],
       tests_require=['pytest', 'hypothesis', 'birdseye', 'ipdb', 'IPython']
       )

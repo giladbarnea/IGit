@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Callable, Generator
 
 from igit import prompt
 from igit.util import cachedprop, termcolor
@@ -12,20 +12,36 @@ class Gitignore:
     def __getitem__(self, item):
         return self.paths[item]
     
+    def __contains__(self, item):
+        path = ExPath(item)
+        for ignored in self.paths:
+            if ignored == path:
+                return True
+    
+    def __getattribute__(self, name: str) -> Any:
+        try:
+            return super().__getattribute__(name)
+        except AttributeError as e:
+            # support all ExPath methods
+            return getattr(self.file, name)
+    
     @cachedprop
-    def paths(self):
+    def paths(self) -> List[ExPath]:
         with self.file.open(mode='r') as file:
             data = file.read()
         lines = data.splitlines()
-        paths = [ExPath(x) for x in filter(bool, lines)]
-        return paths
+        paths = [ExPath(x) for x in lines if bool(x) and '#' not in x]
+        return [*paths, ExPath('.git')]
     
-    def _should_be_ignored(self, p: ExPath):
+    def should_be_ignored(self, p: ExPath, quiet=False) -> bool:
         for ignored in self.paths:
             if ignored == p:
-                print(termcolor.yellow(f'{p} already in gitignore, continuing'))
+                if not quiet:
+                    print(termcolor.yellow(f'{p} already in gitignore, continuing'))
                 return False
             if ignored.parent_of(p):
+                if quiet:
+                    return False
                 msg = termcolor.yellow(f"parent '{ignored}' of '{p}' already in gitignore")
                 key, action = prompt.action(msg, 'skip', 'ignore anyway', 'debug')
                 if action == 'skip':
@@ -33,9 +49,9 @@ class Gitignore:
                     return False
         return True
     
-    def ignore(self, paths, *, confirm=False, dry_run=False):
+    def write(self, paths, *, confirm=False, dry_run=False):
         writelines = []
-        for p in filter(self._should_be_ignored, paths):
+        for p in filter(self.should_be_ignored, paths):
             to_write = f'\n{p}'
             if confirm and not prompt.ask(f'ignore {to_write}?'):
                 continue
@@ -45,25 +61,26 @@ class Gitignore:
             with self.file.open(mode='a') as file:
                 file.write(''.join(sorted(writelines)))
     
-    def is_ignored(self, p):
-        return bool(self.paths_where(lambda ignored: ignored == p))
+    def is_subpath_of_ignored(self, p) -> bool:
+        path = ExPath(p)
+        for ignored in self.paths:
+            if ignored.parent_of(path):
+                return True
     
-    def is_subpath_of_ignored(self, p):
-        return bool(self.paths_where(lambda ignored: ignored.parent_of(p)))
+    def is_ignored(self, p) -> bool:
+        """Returns True if `p` in .gitignore, or `p` is a subpath of a path in .gitignore"""
+        path = ExPath(p)
+        for ignored in self.paths:
+            if ignored == path:
+                return True
+            if ignored.parent_of(path):
+                return True
+        return False
     
-    def paths_where(self, predicate) -> List[ExPath]:
-        truthies = []
+    def paths_where(self, predicate: Callable[[Any], bool]) -> Generator[ExPath, None, None]:
         for ignored in self.paths:
             if predicate(ignored):
-                truthies.append(ignored)
-        return truthies
-    
-    def __getattribute__(self, name: str) -> Any:
-        try:
-            return super().__getattribute__(name)
-        except AttributeError as e:
-            # support all ExPath methods
-            return getattr(self.file, name)
+                yield ignored
 
 # g = Gitignore()
 # print(g.absolute())

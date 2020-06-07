@@ -6,8 +6,9 @@ from igit.util import termcolor
 import subprocess as sp
 
 
-def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
-           inpoot: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
+def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
+        input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
+    # TODO: poll every second for long processes, like git clone
     outs = []
     for cmd in cmds:
         if printcmd:
@@ -16,8 +17,8 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
         try:
             runargs = dict(stdout=stdout, stderr=stderr)
             # runargs = dict()
-            if inpoot:
-                runargs['input'] = inpoot
+            if input:
+                runargs['input'] = input
             
             proc = sp.run(shlex.split(cmd), **runargs)
             if proc.stdout:
@@ -46,6 +47,11 @@ def tryrun(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
     if outs:
         return outs[0] if len(outs) == 1 else outs
     return ''
+
+
+def runquiet(*cmds: str, raiseonfail=True,
+             input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
+    return run(*cmds, printout=False, printcmd=False, raiseonfail=raiseonfail, input=input, stdout=stdout, stderr=stderr)
 
 
 def get_terminal_width():

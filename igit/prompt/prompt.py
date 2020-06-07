@@ -1,18 +1,18 @@
 import re
 from typing import Union, Tuple, Any, overload
 
-from igit.util.misc import try_convert_to_idx
 from more_itertools import partition
 
-from igit.debug.err import DeveloperError
+from igit.util import misc
+from igit.util.misc import try_convert_to_idx
+from igit.util.regex import YES_OR_NO
 from .options import Options
 from .special import Special
-from igit.util import termcolor
-from igit.util.regex import YES_OR_NO
+from more_termcolor import paint
 
 
 def _input(s):
-    return input(termcolor.white(s))
+    return misc.unquote(input(paint.satwhite(s)))
 
 
 AnswerTuple = Tuple[str, Union[str, Special]]
@@ -39,11 +39,11 @@ class Prompt:
         if ans_key not in items:
             if allow_free_input:
                 # * Free input
-                print(termcolor.green(f"Returning free input: (None, '{ans_key}')"))
+                print(paint.white(f"Returning free input: (None, '{ans_key}')"))
                 return None, ans_key
             else:
                 while ans_key not in items:
-                    print(termcolor.yellow(f"Unknown option: '{ans_key}'"))
+                    print(paint.yellow(f"Unknown option: '{ans_key}'"))
                     ans_key = _input(question)
         ans_value = items[ans_key]
         answer = ans_key, ans_value
@@ -106,12 +106,12 @@ class Choice(Prompt):
         if ans_key not in indexeditems:
             if allow_free_input:
                 # * Free input
-                print(termcolor.green(f"Returning free input: (None, '{ans_key}')"))
+                print(paint.white(f"Returning free input: (None, '{ans_key}')"))
                 ans_key = try_convert_to_idx(ans_key)
                 return None, ans_key
             else:
                 while ans_key not in indexeditems:
-                    print(termcolor.yellow(f"Unknown option: '{ans_key}'"))
+                    print(paint.yellow(f"Unknown option: '{ans_key}'"))
                     ans_key = _input(question)
         ans_value = indexeditems[ans_key]
         ans_key = try_convert_to_idx(ans_key)
@@ -136,7 +136,10 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
     options = Options(*standard_opts)
     if 'special_opts' in kwargs:
         if special_opts:
-            raise DeveloperError(f"special_opts was passed both as positional args and kw args")
+            errmsg = ", ".join([f"special_opts was passed both as positional args and kw args.",
+                                f'pos spec opts: {special_opts}',
+                                f'kwargs spec opts: {kwargs["special_opts"]}', ])
+            print(paint.yellow(errmsg))
         options.set_special_options(kwargs.pop('special_opts'))
     else:
         options.set_special_options(special_opts)
@@ -170,14 +173,18 @@ def choose(prompt, *options, **kwargs):
     """Presents `options` by *index*. Expects at least one option"""
     # TODO: test if ok with 'yes'/'no/
     # * options
-    standard_opts, special_opts = map(list, partition(lambda o: o in Special.full_names(), options))
-    options = Options(*standard_opts)
+    # standard_opts, special_opts = map(list, partition(lambda o: o in Special.full_names(), options))
+    # options = Options(*standard_opts)
+    options = Options(*options)
     if 'special_opts' in kwargs:
-        if special_opts:
-            raise DeveloperError(f"special_opts was passed both as positional args and kw args")
+        # if special_opts:
+        #     errmsg = ", ".join([f"special_opts was passed both as positional args and kw args.",
+        #                         f'pos spec opts: {special_opts}',
+        #                         f'kwargs spec opts: {kwargs["special_opts"]}', ])
+        #     print(paint.yellow(errmsg))
         options.set_special_options(kwargs.pop('special_opts'))
-    else:
-        options.set_special_options(special_opts)
+    # else:
+    #     options.set_special_options(special_opts)
     try:
         allow_free_input = kwargs.pop('allow_free_input')
     except KeyError:
@@ -258,5 +265,5 @@ def action(question, *actions, **kwargs):
     # *  keyword-actions
     options.set_kw_options(**kwargs)
     
-    print(termcolor.green(f'action() | actions: {repr(actions)}, options: {repr(options)}'))
+    print(paint.white(f'action() | actions: {repr(actions)}, options: {repr(options)}'))
     return Prompt(question, options, allow_free_input=allow_free_input).answer

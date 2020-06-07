@@ -23,7 +23,7 @@ def main(name):
     if name == btree.version:
         if not prompt.ask(f'{name} is version branch, continue?'):
             sys.exit()
-    shell.tryrun(f'git branch -D {name}',
+    shell.run(f'git branch -D {name}',
                  f'git push origin --delete {name}')
 
 

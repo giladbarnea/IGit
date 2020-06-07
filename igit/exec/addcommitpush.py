@@ -85,10 +85,13 @@ def main(commitmsg: str):
         # populate largepaths
         abspath = cwd / f
         mb = 0
-        if abspath.is_dir():
-            mb += util.path.dirsize(abspath) / 1000000
+        if abspath.exists():
+            if abspath.is_dir():
+                mb = util.path.dirsize(abspath) / 1000000
+            else:
+                mb = abspath.lstat().st_size / 1000000
         else:
-            mb = abspath.lstat().st_size / 1000000
+            print(f'does not exist: "{abspath}"')
         if mb >= 30:
             largepaths[abspath] = mb
     if largepaths:
@@ -99,10 +102,11 @@ def main(commitmsg: str):
         elif len(status.files) < 3:
             commitmsg = ', '.join([f.name for f in status.files])
         else:
+            os.system('git status -s')
             commitmsg = input('commit msg:\t')
     commitmsg = misc.unquote(commitmsg)
-    shell.tryrun('git add .',
-                 f'git commit -am "{commitmsg}"')
+    shell.run('git add .',
+              f'git commit -am "{commitmsg}"')
     git.push()
 
 

@@ -20,17 +20,20 @@ class BranchTree:
     _fetched = False
     _version = ''
     
+    def __contains__(self, branch):
+        return branch in self.branches
+    
     @cachedprop
     def current(self) -> str:
-        return shell.tryrun('git branch --show-current', printcmd=False, printout=False)
+        return shell.runquiet('git branch --show-current')
     
     @cachedprop
     def branches(self) -> dict:
         """{'master': <SHA1>}"""
         if not self._fetched:
-            shell.tryrun('git fetch --all', printcmd=False, printout=False)
+            shell.runquiet('git fetch --all')
             self._fetched = True
-        lines = shell.tryrun('git ls-remote --heads origin', printcmd=False, printout=False).splitlines()
+        lines = shell.runquiet('git ls-remote --heads origin').splitlines()
         return dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
     
     @cachedprop
@@ -40,6 +43,12 @@ class BranchTree:
     @cachedprop
     def branchhashes(self) -> List[str]:
         return list(self.branches.values())
+    
+    def search(self, keyword: str) -> str:
+        # TODO: option to get branch date if ambiguous etc
+        choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
+        print(termcolor.green(f'BranchTree.search("{keyword}") → "{choice}"'))
+        return choice
     
     @property
     def version(self) -> str:
@@ -69,12 +78,6 @@ class BranchTree:
                 return verbranches[-1]
             else:
                 return verbranches[next(iter(max_vernum.values()))]
-    
-    def search(self, keyword: str) -> str:
-        # TODO: option to get branch date if ambiguous etc
-        choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
-        print(termcolor.green(f'BranchTree.search("{keyword}") → "{choice}"'))
-        return choice
 
 
 def _nearest_branch_alternative(branchstr, branches):

@@ -6,29 +6,31 @@ import click
 from igit.status import Status
 from igit.util import termcolor
 from igit.util.clickextensions import unrequired_opt
-from igit.util.path import ExPath as Path
-from igit.util.types import PathOrStr
+from igit.util.path import ExPath, ExPathOrStr
 from igit import prompt
 from igit.ignore import Gitignore
 from ipdb import set_trace
 import inspect
 from more_itertools import partition
+from igit.util.termcolor import italic
+
+tabchar = '\t'
 
 
-def write(paths: List[Path], confirm: bool, dry_run: bool):
+def write(paths: List[ExPath], confirm: bool, dry_run: bool):
     gitignore = Gitignore()
     if not gitignore.exists():
         # TODO: prompt for create
         sys.exit(termcolor.red(f'{gitignore.absolute()} is not file'))
     
-    gitignore.ignore(paths, confirm=confirm, dry_run=dry_run)
+    gitignore.write(paths, confirm=confirm, dry_run=dry_run)
     if dry_run:
         print('dry run finished')
 
 
-def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[Path]:
+def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[ExPath]:
     statusfiles = None
-    paths: List[Path] = []
+    paths: List[ExPath] = []
     for f in ignore_paths:
         # * wildcard
         if "*" in f:
@@ -46,7 +48,7 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[Path]:
         except ValueError:
             pass  # not a number
         
-        path = Path(f)
+        path = ExPath(f)
         if not path.exists():
             print(termcolor.yellow(f'{path} does not exist, skipping'))
             continue
@@ -58,18 +60,18 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[Path]:
         else:
             paths.append(path)
     if not paths:
-        sys.exit(termcolor.red(f'no paths in {Path(".").absolute()}'))
+        sys.exit(termcolor.red(f'no paths in {ExPath(".").absolute()}'))
     return paths
 
 
-def handle_exclude_paths(exclude_paths_str: str) -> Tuple[Path, List[Path]]:
+def handle_exclude_paths(exclude_paths_str: str) -> Tuple[ExPath, List[ExPath]]:
     """Does the '.config/dconf copyq' trick"""
     if not exclude_paths_str:
         return None, None
     if '/' in exclude_paths_str:
         exclude_parent, _, exclude_paths = exclude_paths_str.rpartition('/')
-        exclude_parent = Path(exclude_parent)
-        exclude_paths = [exclude_parent / Path(ex) for ex in exclude_paths.split(' ')]
+        exclude_parent = ExPath(exclude_parent)
+        exclude_paths = [exclude_parent / ExPath(ex) for ex in exclude_paths.split(' ')]
     else:
         raise NotImplementedError(f'only currently handled format is `.ipython/profile_default/startup ipython_config.py`')
     return exclude_parent, exclude_paths
@@ -92,15 +94,15 @@ def ignore(confirm: bool, dry_run: bool, ignore_paths, exclude_paths_str: str = 
 @click.command()
 @click.argument('ignore_paths', nargs=-1)
 @unrequired_opt('-e', '--exclude', 'exclude_paths_tuple', multiple=True, type=str,
-                help="""will NOT be added to gitignore. must be subpaths of a dir passed in IGNORE_PATHS.\n
-                    examples:\n
-                    -e .config/dconf copyq\n
-                    -e .ipython/profile_default/startup ipython_config.py\n
-                    -e .oh-my-zsh/plugins/colored-man-pages/colored-man-pages.plugin.zsh -e .oh-my-zsh/plugins/globalias/globalias.plugin.zsh\n
+                help=f"""will NOT be added to gitignore. must be subpaths of a dir passed in IGNORE_PATHS.\n
+                    Examples:\n
+                    {italic('-e .config/dconf copyq')}\n
+                    {italic('-e .ipython/profile_default/startup ipython_config.py')}\n
+                    {italic('-e .oh-my-zsh/plugins/colored-man-pages/colored-man-pages.plugin.zsh -e .oh-my-zsh/plugins/globalias/globalias.plugin.zsh')}\n
                     """)
 @unrequired_opt('-c', '--confirm', help='confirm before each write. flag.', is_flag=True)
 @unrequired_opt('-n', '--dry-run', help='dont actually write to file. flag.', is_flag=True)
-def main(ignore_paths: List[PathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm, dry_run):
+def main(ignore_paths: List[ExPathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm, dry_run):
     if exclude_paths_tuple:
         for exclude_paths_str in exclude_paths_tuple:
             ignore(confirm, dry_run, ignore_paths, exclude_paths_str)

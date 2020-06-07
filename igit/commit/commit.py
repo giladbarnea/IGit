@@ -13,14 +13,14 @@ class CommitTree:
     
     @cachedprop
     def current(self) -> str:
-        return shell.tryrun('git rev-parse HEAD', printcmd=False, printout=False)
+        return shell.runquiet('git rev-parse HEAD')
     
     @cachedprop
     def commits(self) -> dict:
         if not self._fetched:
-            shell.tryrun('git fetch --all', printcmd=False, printout=False)
+            shell.runquiet('git fetch --all')
             self._fetched = True
-        lines = shell.tryrun('git log --pretty=oneline', printcmd=False, printout=False).splitlines()
+        lines = shell.runquiet('git log --pretty=oneline').splitlines()
         
         # TODO: better to just line.split(' ', maxsplit=1)?
         return dict(reversed(re.split(r' ', line, maxsplit=1)) for line in lines)

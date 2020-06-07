@@ -31,7 +31,7 @@ def main():
         if git.pull() == 1:
             print(termcolor.yellow(f"git pull failed"))
     
-    shell.tryrun(f'git checkout {branch}')
+    shell.run(f'git checkout {branch}')
     if git.pull() == 1:
         print(termcolor.yellow(f"git pull failed"))
 

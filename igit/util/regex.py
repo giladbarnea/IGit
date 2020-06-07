@@ -45,7 +45,7 @@ def has_regex(val: str):  # doesnt detect single dot
     return False
 
 
-def has_adv_regex(val: str):  # doesnt detect single dot
+def has_adv_regex(val: str):
     if not val:
         return False
     for i, c in enumerate(val):
@@ -57,6 +57,12 @@ def has_adv_regex(val: str):  # doesnt detect single dot
         except IndexError:
             pass
     return False
+
+
+def is_glob(val: str):
+    if not val:
+        return False
+    return has_regex(val) and not has_adv_regex(val)
 
 
 def make_word_separators_optional(val):

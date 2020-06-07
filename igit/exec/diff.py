@@ -1,42 +1,78 @@
 #!/usr/bin/env python3.8
-import os
+import sys
 from typing import Tuple
 
 import click
 
-from igit.status import Status
+from igit.ignore import Gitignore
+from igit.util import shell, termcolor, regex
+from igit.util.clickextensions import unrequired_opt
+from igit.util.path import ExPath
+from igit.util.termcolor import italic
+
+tabchar = '\t'
 
 
-def is_file(val):
-    pass
-
-
-def is_branch(val):
-    pass
-
-
-@click.command()
+@click.command(help=f"""Examples:\n
+                    {italic(tabchar + 'diff mi-mevi-ma "[^.]*.ts"')}\n
+                    {italic(tabchar + 'diff -e "js d.ts *.map"')}
+                    """)
 @click.argument('items', nargs=-1, required=False)
-@click.option('--exclude', '-e', default=None, required=False, show_default=True)
+@unrequired_opt('--exclude', '-e')
 def main(items: Tuple[str], exclude):
     # git diff origin/master -- . :(exclude)*.csv :(exclude)*.ipynb :(exclude)*.sql :!report_validators/*
     # or ':!*.js' ':!*.d.ts' ':!*.js.map'
-    # everything is space separated, like grepf.py
-    # TODO: in exclude, :!report_validators/* if dir else :!*.ipynb
-    #  same for files
-    #  option to view in web like comparebranch
-    # -b: --ignore-space-change, -w: --ignore-all-space. allow-indentation-change?
-    cmd = 'git diff --ignore-cr-at-eol --ignore-space-at-eol -b -w --ignore-blank-lines'
-    print(f'items: {items}')
+    # TODO: option to view in web like comparebranch
+    exclude_exts = []
+    if exclude:
+        for ex in exclude.split(' '):
+            if ExPath(ex).exists():
+                exclude_exts.append(f'":!{ex}"')
+            else:
+                exclude_exts.append(f'":!*.{ex}"')
+    
+    cmd = 'git diff --color-moved=zebra --find-copies-harder --ignore-blank-lines '
+    print(termcolor.grey(f'items: {items}'))
     if not items:
-        return os.system(cmd)
-    first, *rest = items
-    if not rest:
-        status = Status()
-        files = status[first]
-        joined = " ".join(map(str, files))
-        print(f'files: {files}', 'joined: ', joined)
-        return os.system(f'{cmd} {joined}')
+        shell.run(cmd, stdout=sys.stdout)
+    # first, *rest = items
+    # if first in BranchTree():
+    #     diff_files = [line.rpartition('\t')[2] for line in shell.runquiet(f"git diff --numstat {first}").splitlines()]
+    # else:
+    #     diff_files = [line.rpartition('\t')[2] for line in shell.runquiet(f"git diff --numstat").splitlines()]
+    
+    formatted = []
+    # if exclude_exts:
+    
+    gitignore = None
+    root = None
+    
+    for item in items:
+        if regex.has_adv_regex(item):
+            # for diff_file in diff_files:
+            #     if re.match(item, diff_file):
+            #         stripped = diff_file.strip()
+            #         formatted.append(f'"{stripped}"')
+            # continue
+            
+            if gitignore is None:
+                gitignore = Gitignore()
+            if root is None:
+                root = ExPath('.')
+            for match in root.regex(item, lambda x: not gitignore.is_ignored(x)):
+                stripped = match.strip()
+                formatted.append(f'"{stripped}"')
+            continue
+        
+        stripped = item.strip()
+        formatted.append(f'"{stripped}"')
+    
+    joined = " ".join(formatted)
+    cmd += f'{joined} '
+    if exclude_exts:
+        cmd += " ".join(exclude_exts)
+    
+    shell.run(cmd, stdout=sys.stdout)
 
 
 if __name__ == '__main__':

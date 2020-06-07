@@ -6,9 +6,10 @@ from fuzzysearch import find_near_matches
 
 from igit import prompt
 from igit.prompt import Special
-from igit.util import termcolor
+from more_termcolor import paint
 from ipdb import set_trace
 import inspect
+import math
 
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
 T = TypeVar('T')
@@ -34,7 +35,7 @@ class Matches(Generic[T]):
     
     def _reset_stats(self):
         # don't update best_score because we're called after discarding only worst scores
-        print(termcolor.grey(f'Matches._reset_stats() beforehand: worst {self.worst_score}, count {self.count}'))
+        # print(paint.faint(f'Matches._reset_stats() beforehand: worst {self.worst_score}, count {self.count}'))
         
         self.worst_score = 0
         self.count = 0
@@ -74,13 +75,13 @@ class Matches(Generic[T]):
     
     def best(self) -> List[T]:
         ret = self.matches[self.best_score]
-        print(termcolor.grey(f'Matches.best() → {len(ret)} matches with score: {self.best_score}'))
+        # print(paint.faint(f'Matches.best() → {len(ret)} matches with score: {self.best_score}'))
         return ret
 
 
 def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
     matches = fuzzy(keyword, collection, cutoff)
-    print(repr(matches))
+    # print(repr(matches))
     return matches.best()[0]
 
 
@@ -89,14 +90,33 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
     far_matches = Matches(maxsize=5)
+    max_l_dist = len(keyword) - 1
+    # TODO: sometimes cutoff == max_l_dist
     for item in collection:
-        matches = find_near_matches(keyword, item, max_l_dist=len(keyword) - 1)
+        matches = find_near_matches(keyword, item, max_l_dist=max_l_dist)
         # don't `continue` even if matches is empty
         # lower distance is better
-        dists = [m.dist for m in matches]
-        if not dists:
+        dists_sum = 0
+        # dists = []
+        match_lengths = 0
+        match_count = 0
+        for m in matches:
+            dists_sum += m.dist
+            # dists.append(m.dist)
+            match_lengths += len(m.matched)
+            match_count += 1
+        if not dists_sum:
             continue
-        score = sum(dists) / len(dists)
+        
+        # dist_score = sum(dists) / len(dists)
+        dist_score = dists_sum / match_count
+        avg_match_length = match_lengths / match_count
+        relative_factor = avg_match_length / len(item)
+        relative_factor = -round(-relative_factor - (-relative_factor % 0.2), 2)  # round up
+        # relative_factor = 1 + (dist_score / len(item))
+        # score = dist_score * relative_factor
+        
+        score = dist_score - relative_factor
         if score >= cutoff:
             # * not so good (above cutoff): put into far_matches if within cutoff+1
             far_matches.append(item, score)
@@ -105,11 +125,11 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         # * good (below cutoff)
         near_matches.append(item, score)
     if not near_matches and not far_matches:
-        print(termcolor.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
+        print(paint.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
     if near_matches:
-        print(termcolor.grey(f'fuzzy() → near_matches: {near_matches}\n\tfar_matches: {far_matches}'))
+        # print(paint.faint(f'fuzzy() → near_matches: {near_matches}\n\tfar_matches: {far_matches}'))
         return near_matches
-    print(termcolor.grey(f'fuzzy() → far_matches: {far_matches}\n\tnear_matches: {near_matches}'))
+    # print(paint.faint(f'fuzzy() → far_matches: {far_matches}\n\tnear_matches: {near_matches}'))
     return far_matches
 
 
@@ -158,19 +178,20 @@ def iter_maybes(keyword: str, collection: List[T], *extra_options, criterion: Se
     """Doesn't prompt of any kind. Yields a `[...], is_last` tuple."""
     is_maybe = _create_is_maybe_predicate(criterion)
     
-    print(termcolor.yellow(f"trying to get '{keyword}' by '{criterion}'..."))
+    # print(paint.faint(f"trying to get '{keyword}' by '{criterion}'..."))
     maybes = [item for item in collection if is_maybe(item, keyword)]
     yield maybes, False
     
-    print(termcolor.yellow(f"ignoring case and word separators everywhere (pseudo-fuzzy)..."))
+    # print(paint.faint(f"ignoring case and word separators everywhere (pseudo-fuzzy)..."))
     regexp = re.sub(r'[-_./ ]', r'[-_./ ]?', keyword)
     new_maybes = [item for item in collection if re.search(regexp, item, re.IGNORECASE)]
     if new_maybes == maybes:
-        print(termcolor.yellow(f"pseudo-fuzzy got no new results"))
+        pass
+        # print(paint.faint(f"pseudo-fuzzy got no new results"))
     else:
         yield maybes, False
     
-    print(termcolor.yellow(f"going full fuzzy..."))
+    # print(paint.faint(f"going full fuzzy..."))
     near_matches = fuzzy(keyword, collection)
-    print(termcolor.grey(repr(near_matches)))
+    # print(paint.faint(repr(near_matches)))
     yield near_matches.best(), True

@@ -6,7 +6,7 @@ import click
 
 from igit.status import Status
 from igit.util import termcolor
-from igit.util.types import PathOrStr
+from igit.util.path import ExPathOrStr
 from igit.prompt import ask
 
 

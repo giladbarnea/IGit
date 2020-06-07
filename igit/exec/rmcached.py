@@ -5,9 +5,10 @@ import click
 from igit import prompt, git
 from igit.ignore import Gitignore
 from igit.status import Status
-from igit.util import termcolor, shell
+from igit.util import shell
 from igit.util.misc import unquote, try_convert_to_idx
 from igit.util.path import ExPath
+from more_termcolor import paint
 
 
 @click.command()
@@ -16,7 +17,7 @@ def main(paths):
     print(f'main({", ".join(paths)})')
     # TODO: see if exists in status
     if not paths:
-        sys.exit(termcolor.red('no paths! exiting'))
+        sys.exit(paint.red('no paths! exiting'))
     
     cmds = []
     gitignore = Gitignore()
@@ -26,14 +27,14 @@ def main(paths):
         try:
             # * maybe index
             converted = try_convert_to_idx(p)
-            print(termcolor.lightgrey(f'p: {p}, converted: {converted}'))
+            print(paint.faint(f'p: {p}, converted: {converted}'))
             p = status[converted]
         except TypeError as e:
             # * not index, just str
             p = ExPath(unquote(p))
         
         if not p.exists():
-            print(f"{termcolor.yellow(p)} does not exist, skipping")
+            print(f"{paint.yellow(p)} does not exist, skipping")
             continue
         
         # exists
@@ -45,18 +46,18 @@ def main(paths):
         existing_paths.append(p)
     
     if not cmds:
-        sys.exit(termcolor.red('no paths to rm, exiting'))
+        sys.exit(paint.red('no paths to rm, exiting'))
     
-    shell.tryrun(*cmds, raiseonfail=False)
+    shell.run(*cmds, raiseonfail=False)
     if prompt.ask(f'try to ignore {len(existing_paths)} paths?'):
-        gitignore.ignore(existing_paths)
+        gitignore.write(existing_paths)
     
     key, answer = prompt.generic(f'commit and push?', 'yes, commit with "Removed from cache: ..."', 'custom commit message', 'quit')
     if key == 'y':
         commitmsg = f'Removed from cache: ' + ', '.join(map(str, paths))
     else:
         commitmsg = prompt.generic('commit msg:', allow_free_input=True)[1]
-    shell.tryrun(f'git commit -a -m "{commitmsg}"')
+    shell.run(f'git commit -am "{commitmsg}"')
     git.push()
 
 

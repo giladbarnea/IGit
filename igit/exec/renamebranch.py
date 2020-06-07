@@ -26,7 +26,7 @@ def main(oldname, newname):
         os.system('git branch -l')
         sys.exit(termcolor.red(f'"{oldname}" doesnt exist'))
     
-    shell.tryrun(f'git branch -m {newname}',
+    shell.run(f'git branch -m {newname}',
                  f'git push origin :{oldname} {newname}',
                  f'git push origin -u {newname}')
 

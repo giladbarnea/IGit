@@ -10,20 +10,25 @@ def clip_copy(text: str):
     os.system(f'echo {stripped} | xclip -r -selection clipboard')
 
 
-def unquote(string: str) -> str:
+def unquote(string) -> str:
     # TODO: "gallery is MOBILE only if <= $BP3" -> "gallery is MOBILE only if <=" (maybe bcz bash?)
     string = str(string)
-    try:
-        
-        match = re.fullmatch(r'(["\'])(.*)\1', string, re.DOTALL)
-        if match:  # "'hello'"
-            string = match.groups()[1]
-        return string.strip()
-    except Exception as e:
-        import ipdb
-        import inspect
-        ipdb.post_mortem()
-        return string
+    match = re.fullmatch(r'(["\'])(.*)\1', string, re.DOTALL)
+    if match:  # "'hello'"
+        string = match.groups()[1]
+    return string.strip()
+
+
+def quote(string) -> str:
+    if '"' in string:
+        if "'" in string:
+            raise NotImplementedError(f"quote() got string with both types of quotes, escaping not impl", string)
+        return f"'{string}'"
+    elif "'" in string:
+        if '"' in string:
+            raise NotImplementedError(f"quote() got string with both types of quotes, escaping not impl", string)
+        return f'"{string}"'
+    return f'"{string}"'
 
 
 def deephash(obj):

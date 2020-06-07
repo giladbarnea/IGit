@@ -30,7 +30,7 @@ def main(branch):
         branch = btree.search(branch)
     if not branch:
         sys.exit(termcolor.red(f"Couldn't find branch"))
-    shell.tryrun(f'git checkout {branch}')
+    shell.run(f'git checkout {branch}')
     if git.pull() == 1:
         print(termcolor.yellow(f"git pull failed"))
 
