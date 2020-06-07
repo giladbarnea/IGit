@@ -22,7 +22,7 @@ class Special(Enum):
     def from_full_name(cls, fullname: str) -> 'Special':
         """'continue' → Special.CONTINUE"""
         try:
-            return Special._member_map_[fullname.upper()]
+            return Special._member_map_[str(fullname).upper()]
         except KeyError as e:
             raise ValueError(f"'{fullname}' is not a valid {cls.__qualname__}")
     
