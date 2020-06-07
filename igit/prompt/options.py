@@ -1,7 +1,8 @@
 import re
-from typing import Tuple, Literal, Union, NoReturn, Callable, Any, Iterable
+from typing import Tuple, Literal, Union, NoReturn, Callable, Any, Iterable, List
 
 from igit.debug.err import DeveloperError
+from .item import Item
 from .util import has_duplicates
 from .special import Special
 from igit.util.regex import YES_OR_NO
@@ -42,7 +43,7 @@ class Options:
         return f'Options(opts = {repr(self.opts)}, kw_opts = {repr(self.kw_opts)}, special_opts = {repr(self.special_opts)})'
     
     def __add__(self, other):
-        pass
+        raise NotImplementedError()
     
     def set_special_options(self, special_opts: Union[str, Iterable, bool]) -> NoReturn:
         """Sets `self.special_opts` with Special objects.
