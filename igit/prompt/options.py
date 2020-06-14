@@ -2,26 +2,32 @@ from abc import ABC
 from contextlib import suppress
 from typing import Tuple, Union, NoReturn, Callable, Any, Iterable
 
+from igit.debug import ExcHandler
 from igit.debug.err import DeveloperError
-from igit.prompt.item import Items, IndexedItems, LexicItems, KeywordItems, Item
+from igit.prompt.item import Items, NumItems, LexicItems, KeywordItems, Item
 from igit.prompt.special import Special
 from igit.prompt.util import has_duplicates
 from igit.util.cache import memoize
+from more_termcolor import colors, colored
+from ipdb import set_trace
+import inspect
 
 
 class Options(ABC):
-    items: Items
+    # items: Items
+    _itemscls = None
     
     # special_opts: Tuple['Special', ...]
     
     def __init__(self, *opts: str):
+        self.items = self._itemscls(opts)
         if has_duplicates(opts):
             raise ValueError(f"Duplicate opts: ", opts)
         # self.special_opts = tuple()
-        self._values = None
-        self._items = None
-        self._indexeditems = None
-        self._all_yes_or_no = None  # calculated only when None (not True or False)
+        # self._values = None
+        # self._items = None
+        # self._indexeditems = None
+        # self._all_yes_or_no = None  # calculated only when None (not True or False)
     
     def __bool__(self):
         # return bool(self.items) or bool(self.special_opts)
@@ -53,23 +59,25 @@ class Options(ABC):
             return
         if has_duplicates(kw_opts.values()):
             raise ValueError(f"Duplicate kw_opts: ", kw_opts)
-        if 'allow_free_input' in kw_opts:
-            raise DeveloperError(f"set_kw_options() 'allow_free_input' found in kw_opts, should have popped it out earlier")
-        clean_kw_opts = dict()
+        if 'free_input' in kw_opts:
+            raise DeveloperError(f"set_kw_options(): 'free_input' found in kw_opts, should have popped it out earlier")
+        non_special_kw_opts = dict()
         for kw in kw_opts:
             opt = kw_opts[kw]
             if kw in self.items:
-                raise DeveloperError(f"set_kw_options() '{kw}' in kw_opts but was already in self.items", repr(self))
+                raise ValueError(f"set_kw_options(): '{kw}' in kw_opts but was already in self.items", repr(self))
             try:
                 special = Special.from_full_name(opt)
             except ValueError:
-                clean_kw_opts[kw] = opt
+                non_special_kw_opts[kw] = opt
             else:
                 self.items[kw] = special.name
         
-        if not clean_kw_opts:
+        if not non_special_kw_opts:
             return
-        kw_items = KeywordItems(clean_kw_opts)
+        
+        kw_items = KeywordItems(non_special_kw_opts)
+        
         self.items.update(**kw_items)
         # self.kw_opts = kw_opts
     
@@ -79,9 +87,16 @@ class Options(ABC):
                 return True
         return False
     
-    @memoize
     def all_yes_or_no(self) -> bool:
-        return all(item.is_yes_or_no for item in self.items.values())
+        
+        for item in self.items.values():
+            try:
+                if not item.is_yes_or_no:
+                    return False
+            except AttributeError:
+                print(colors.brightblack(f'Options.all_yes_or_no() AttributeError with item: {item} {type(item)}. Ignoring.'))
+        return True
+        
         # nonspecials = set(self.opts)
         # nonspecials.update(set(self.kw_opts.values()))
         # if not nonspecials:
@@ -180,11 +195,12 @@ class Options(ABC):
     #         items[spec.value] = spec.name
 
 
-class IndexedOptions(Options):
-    items: IndexedItems
+class NumOptions(Options):
+    _itemscls = NumItems
+    items: NumItems
     
     def __init__(self, *opts: str):
-        self.items = IndexedItems(opts)
+        self.items = NumItems(opts)
         super().__init__(*opts)
 
 

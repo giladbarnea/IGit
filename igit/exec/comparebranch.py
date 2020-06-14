@@ -7,20 +7,20 @@ import click
 from igit import prompt
 from igit.branch import BranchTree
 from igit.repo import Repo
-from igit.util import termcolor
+from more_termcolor import colors
 
 btree = BranchTree()
 
 
 def compare(a, b):
-    print(termcolor.lightgrey(f'compare("{a}", "{b}")'))
+    print(colors.brightblack(f'compare("{a}", "{b}")'))
     if a == b:
-        sys.exit(termcolor.red(f'trying to compare a branch to itself: {a}'))
+        sys.exit(colors.red(f'trying to compare a branch to itself: {a}'))
     if a not in btree.branches:
-        print(termcolor.yellow(f'"{a}" not in branches, searching...'))
+        print(colors.yellow(f'"{a}" not in branches, searching...'))
         return compare(btree.search(a), b)
     if b not in btree.branches:
-        print(termcolor.yellow(f'"{b}" not in branches, searching...'))
+        print(colors.yellow(f'"{b}" not in branches, searching...'))
         return compare(a, btree.search(b))
     repo = Repo()
     if repo.host == 'bitbucket':
@@ -34,15 +34,15 @@ def compare(a, b):
 @click.argument('a', required=False)
 @click.argument('b', required=False)
 def main(a, b):
-    print(termcolor.lightgrey(f'main(a: {a}, b: {b})'))
+    print(colors.brightblack(f'main(a: {a}, b: {b})'))
     if a and b:
-        print(termcolor.lightgrey(f'comparing a to b'))
+        print(colors.brightblack(f'comparing a to b'))
         return compare(a, b)
     if a:
-        print(termcolor.lightgrey(f'comparing btree.current to a'))
+        print(colors.brightblack(f'comparing btree.current to a'))
         return compare(btree.current, a)
     
-    print(termcolor.lightgrey(f'comparing btree.current to master'))
+    print(colors.brightblack(f'comparing btree.current to master'))
     return compare(btree.current, 'master')
 
 

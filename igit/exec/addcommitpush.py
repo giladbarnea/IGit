@@ -9,7 +9,8 @@ import click
 from igit import git, prompt, util
 from igit.exec.ignore import main as ignore
 from igit.status import Status
-from igit.util import shell, termcolor, misc
+from igit.util import shell, misc
+from more_termcolor import colors
 
 
 def verify_shebang(f: Path, lines):
@@ -32,11 +33,11 @@ def verify_shebang(f: Path, lines):
                 shebang += '8'
             with f.open(mode='w') as opened:
                 opened.write('\n'.join([shebang] + lines))
-                print(termcolor.green(f'Added shebag to {f.name} successfully'))
+                print(colors.green(f'Added shebag to {f.name} successfully'))
 
 
 def handle_large_files(cwd, largepaths: Dict[Path, float]):
-    print(termcolor.yellow(f'{len(largepaths)} large paths sized >= 30MB found:'))
+    print(colors.yellow(f'{len(largepaths)} large paths sized >= 30MB found:'))
     for abspath, mbsize in largepaths.items():
         stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
         if abspath.is_dir():
@@ -62,7 +63,7 @@ def handle_empty_file(f):
 def main(commitmsg: str):
     status = Status()
     if not status.files:
-        if prompt.ask('No files in status, just push?'):
+        if prompt.confirm('No files in status, just push?'):
             return git.push()
     
     cwd = Path(os.getcwd())
@@ -105,6 +106,7 @@ def main(commitmsg: str):
             os.system('git status -s')
             commitmsg = input('commit msg:\t')
     commitmsg = misc.unquote(commitmsg)
+    
     shell.run('git add .',
               f'git commit -am "{commitmsg}"')
     git.push()
@@ -114,5 +116,5 @@ if __name__ == '__main__':
     try:
         main()
     except FileNotFoundError as e:
-        print(termcolor.yellow(e))
+        print(colors.brightred(repr(e)))
         raise e

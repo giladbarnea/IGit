@@ -5,18 +5,19 @@ from igit import git
 from igit import prompt
 from igit.branch import BranchTree
 from igit.status import Status
-from igit.util import shell, termcolor
+from igit.util import shell
+from more_termcolor import colors
 
 
 def main():
     status = Status()
     if status:
-        sys.exit(termcolor.red('Uncommitted changes, aborting'))
+        sys.exit(colors.red('Uncommitted changes, aborting'))
     btree = BranchTree()
     versionbranch = btree.version
     if not versionbranch:
-        print(termcolor.yellow("Couldn't find version branch"))
-        if not prompt.ask('Checkout master?'):
+        print(colors.yellow("Couldn't find version branch"))
+        if not prompt.confirm('Checkout master?'):
             sys.exit()
         branch = 'master'
     else:
@@ -25,15 +26,15 @@ def main():
     currbranch = btree.current
     
     if currbranch == branch:
-        print(termcolor.yellow(f'Already on version branch: {branch}'))
-        if not prompt.ask('Pull?'):
+        print(colors.yellow(f'Already on version branch: {branch}'))
+        if not prompt.confirm('Pull?'):
             sys.exit()
         if git.pull() == 1:
-            print(termcolor.yellow(f"git pull failed"))
+            print(colors.yellow(f"git pull failed"))
     
     shell.run(f'git checkout {branch}')
     if git.pull() == 1:
-        print(termcolor.yellow(f"git pull failed"))
+        print(colors.yellow(f"git pull failed"))
 
 
 if __name__ == '__main__':

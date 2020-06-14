@@ -4,10 +4,10 @@ import sys
 import click
 
 from igit import prompt
-from igit.util import shell, termcolor
+from igit.util import shell
 
 from igit.branch import BranchTree
-
+from more_termcolor import colors
 
 @click.command()
 @click.argument('name')
@@ -15,16 +15,16 @@ def main(name):
     btree = BranchTree()
     branches = btree.branchnames
     if name not in branches:
-        print(termcolor.yellow(f"didn't find {name} in branches"))
+        print(colors.yellow(f"didn't find {name} in branches"))
         name = btree.search(name)
     if name == btree.current:
         # TODO: gco - then continue
-        sys.exit(termcolor.red(f'"{name}" is current branch'))
+        sys.exit(colors.red(f'"{name}" is current branch'))
     if name == btree.version:
-        if not prompt.ask(f'{name} is version branch, continue?'):
+        if not prompt.confirm(f'{name} is version branch, continue?'):
             sys.exit()
     shell.run(f'git branch -D {name}',
-                 f'git push origin --delete {name}')
+              f'git push origin --delete {name}')
 
 
 if __name__ == '__main__':

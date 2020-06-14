@@ -1,22 +1,29 @@
 import shlex
+import subprocess as sp
 from typing import Union, List
 
-from igit.debug import ExcHandler
-from igit.util import termcolor
-import subprocess as sp
+from igit_debug import ExcHandler
+from igit.util import misc
+from more_termcolor import colors
 
 
 def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
-        input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
+        input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE):
     # TODO: poll every second for long processes, like git clone
     outs = []
     for cmd in cmds:
         if printcmd:
-            fmtd = termcolor.color(f'\n{cmd}', "lightgrey", "italic")
-            print(fmtd)
+            print(colors.brightblack(f'\n{cmd}', "italic"))
         try:
-            runargs = dict(stdout=stdout, stderr=stderr)
-            # runargs = dict()
+            runargs = dict()
+            if isinstance(stdout, str):
+                print(colors.yellow(f'shell.run() stdout is str, not passing it: {misc.trim_at(stdout, 60)}'))
+            else:
+                runargs['stdout'] = stdout
+            if isinstance(stderr, str):
+                print(colors.yellow(f'shell.run() stderr is str, not passing it: {misc.trim_at(stderr, 60)}'))
+            else:
+                runargs['stderr'] = stderr
             if input:
                 runargs['input'] = input
             
@@ -30,10 +37,10 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
                 stderr = proc.stderr.decode().strip()
                 if stderr.endswith('Permission denied'):
                     raise PermissionError(stderr)
-                print(termcolor.yellow(stderr))
+                print(colors.brightyellow(stderr))
         
         except Exception as e:
-            print(termcolor.yellow(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
+            print(colors.brightred(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
             hdlr = ExcHandler(e)
             if raiseonfail:
                 print(hdlr.full())

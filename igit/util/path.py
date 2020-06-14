@@ -2,7 +2,7 @@ import re
 from pathlib import Path, PosixPath
 from typing import Union, Any, Generator
 
-from igit.util.regex import FILE_SUFFIX, is_only_regex
+from igit.util.regex import FILE_SUFFIX, is_only_regex, is_glob
 
 
 class ExPath(PosixPath):
@@ -28,10 +28,18 @@ class ExPath(PosixPath):
             return False
         self_string = str(self)
         if '*' in self_string:
-            if not self_string.endswith('*'):
-                raise NotImplementedError(f"self has `*` but not in the end. self: {self}", self)
-            self_before, *_ = self_string.partition('*')
-            return ExPath(self_before).is_dir()
+            
+            if self_string.endswith('*'):
+                # e.g. 'some_path*', 'some_path/*', ...
+                before_star, *_ = self_string.partition('*')
+                return ExPath(before_star).is_dir()
+            # e.g. '*.foo', 'some_*/', ...
+            # TODO: this is a partial solution
+            before_star, _, after_star = self_string.partition('*')
+            if '/' not in after_star:
+                # *.py[cod] is a file, not a dir
+                return False
+        
         else:
             return False
     

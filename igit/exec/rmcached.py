@@ -8,7 +8,7 @@ from igit.status import Status
 from igit.util import shell
 from igit.util.misc import unquote, try_convert_to_idx
 from igit.util.path import ExPath
-from more_termcolor import paint
+from more_termcolor import colors, colored
 
 
 @click.command()
@@ -17,7 +17,7 @@ def main(paths):
     print(f'main({", ".join(paths)})')
     # TODO: see if exists in status
     if not paths:
-        sys.exit(paint.red('no paths! exiting'))
+        sys.exit(colors.red('no values! exiting'))
     
     cmds = []
     gitignore = Gitignore()
@@ -27,14 +27,14 @@ def main(paths):
         try:
             # * maybe index
             converted = try_convert_to_idx(p)
-            print(paint.faint(f'p: {p}, converted: {converted}'))
+            print(colors.dark(f'p: {p}, converted: {converted}'))
             p = status[converted]
         except TypeError as e:
             # * not index, just str
             p = ExPath(unquote(p))
         
         if not p.exists():
-            print(f"{paint.yellow(p)} does not exist, skipping")
+            print(f"{colors.yellow(p)} does not exist, skipping")
             continue
         
         # exists
@@ -46,17 +46,16 @@ def main(paths):
         existing_paths.append(p)
     
     if not cmds:
-        sys.exit(paint.red('no paths to rm, exiting'))
+        sys.exit(colors.red('no values to rm, exiting'))
     
     shell.run(*cmds, raiseonfail=False)
-    if prompt.ask(f'try to ignore {len(existing_paths)} paths?'):
+    if prompt.confirm(f'try to ignore {len(existing_paths)} values?'):
         gitignore.write(existing_paths)
     
-    key, answer = prompt.generic(f'commit and push?', 'yes, commit with "Removed from cache: ..."', 'custom commit message', 'quit')
-    if key == 'y':
-        commitmsg = f'Removed from cache: ' + ', '.join(map(str, paths))
-    else:
-        commitmsg = prompt.generic('commit msg:', allow_free_input=True)[1]
+    commitmsg = f'Removed from cache: ' + ', '.join(map(str, paths))
+    key, answer = prompt.generic(f'commit and push?', f'yes, commit with "{commitmsg}"', 'custom commit message', flowopts='quit')
+    if key != 'y':
+        commitmsg = prompt.generic('commit msg:', free_input=True)[1]
     shell.run(f'git commit -am "{commitmsg}"')
     git.push()
 

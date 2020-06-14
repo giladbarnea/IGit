@@ -18,7 +18,7 @@ def main(name):
     btree = BranchTree()
     branches = btree.branchnames
     if name in branches:
-        if not prompt.ask(f'"{name}" already exists, check it out?'):
+        if not prompt.confirm(f'"{name}" already exists, check it out?'):
             sys.exit()
         shell.run(f'git checkout {name}')
         return git.pull()

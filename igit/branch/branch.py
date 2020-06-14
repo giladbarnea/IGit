@@ -4,7 +4,8 @@ from typing import List, Dict
 from igit.debug import ExcHandler
 from igit.util.search import search_and_prompt
 
-from igit.util import shell, termcolor, cachedprop
+from igit.util import shell, cachedprop
+from more_termcolor import colors
 
 
 class BranchTree:
@@ -47,7 +48,7 @@ class BranchTree:
     def search(self, keyword: str) -> str:
         # TODO: option to get branch date if ambiguous etc
         choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
-        print(termcolor.green(f'BranchTree.search("{keyword}") → "{choice}"'))
+        print(colors.dark(f'BranchTree.search("{keyword}") → "{choice}"'))
         return choice
     
     @property

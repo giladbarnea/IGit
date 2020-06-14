@@ -1,18 +1,14 @@
 #!/usr/bin/env python3.8
 import sys
 from typing import List, Tuple
+
 import click
 
+from igit.ignore import Gitignore
 from igit.status import Status
-from igit.util import termcolor
 from igit.util.clickextensions import unrequired_opt
 from igit.util.path import ExPath, ExPathOrStr
-from igit import prompt
-from igit.ignore import Gitignore
-from ipdb import set_trace
-import inspect
-from more_itertools import partition
-from igit.util.termcolor import italic
+from more_termcolor import colors
 
 tabchar = '\t'
 
@@ -21,7 +17,7 @@ def write(paths: List[ExPath], confirm: bool, dry_run: bool):
     gitignore = Gitignore()
     if not gitignore.exists():
         # TODO: prompt for create
-        sys.exit(termcolor.red(f'{gitignore.absolute()} is not file'))
+        sys.exit(colors.brightred(f'{gitignore.absolute()} is not file'))
     
     gitignore.write(paths, confirm=confirm, dry_run=dry_run)
     if dry_run:
@@ -50,7 +46,7 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[ExPath]:
         
         path = ExPath(f)
         if not path.exists():
-            print(termcolor.yellow(f'{path} does not exist, skipping'))
+            print(colors.yellow(f'{path} does not exist, skipping'))
             continue
         
         if path == exclude_parent:
@@ -60,7 +56,7 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[ExPath]:
         else:
             paths.append(path)
     if not paths:
-        sys.exit(termcolor.red(f'no paths in {ExPath(".").absolute()}'))
+        sys.exit(colors.brightred(f'no paths in {ExPath(".").absolute()}'))
     return paths
 
 
@@ -96,9 +92,9 @@ def ignore(confirm: bool, dry_run: bool, ignore_paths, exclude_paths_str: str = 
 @unrequired_opt('-e', '--exclude', 'exclude_paths_tuple', multiple=True, type=str,
                 help=f"""will NOT be added to gitignore. must be subpaths of a dir passed in IGNORE_PATHS.\n
                     Examples:\n
-                    {italic('-e .config/dconf copyq')}\n
-                    {italic('-e .ipython/profile_default/startup ipython_config.py')}\n
-                    {italic('-e .oh-my-zsh/plugins/colored-man-pages/colored-man-pages.plugin.zsh -e .oh-my-zsh/plugins/globalias/globalias.plugin.zsh')}\n
+                    {colors.italic('-e .config/dconf copyq')}\n
+                    {colors.italic('-e .ipython/profile_default/startup ipython_config.py')}\n
+                    {colors.italic('-e .oh-my-zsh/plugins/colored-man-pages/colored-man-pages.plugin.zsh -e .oh-my-zsh/plugins/globalias/globalias.plugin.zsh')}\n
                     """)
 @unrequired_opt('-c', '--confirm', help='confirm before each write. flag.', is_flag=True)
 @unrequired_opt('-n', '--dry-run', help='dont actually write to file. flag.', is_flag=True)

@@ -3,13 +3,9 @@ from collections import defaultdict
 from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic
 
 from fuzzysearch import find_near_matches
-
 from igit import prompt
 from igit.prompt import Special
-from more_termcolor import paint
-from ipdb import set_trace
-import inspect
-import math
+from more_termcolor import colors, colored
 
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
 T = TypeVar('T')
@@ -90,7 +86,7 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
     far_matches = Matches(maxsize=5)
-    max_l_dist = len(keyword) - 1
+    max_l_dist = min(len(keyword) - 1, 17)
     # TODO: sometimes cutoff == max_l_dist
     for item in collection:
         matches = find_near_matches(keyword, item, max_l_dist=max_l_dist)
@@ -125,7 +121,7 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         # * good (below cutoff)
         near_matches.append(item, score)
     if not near_matches and not far_matches:
-        print(paint.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
+        print(colors.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
     if near_matches:
         # print(paint.faint(f'fuzzy() → near_matches: {near_matches}\n\tfar_matches: {far_matches}'))
         return near_matches
@@ -142,7 +138,7 @@ def _choose_from_many(collection, *promptopts) -> Optional[str]:
                 return None
             return collection[i]
         # *  single
-        if prompt.ask(f'found: {collection[0]}. proceed with this?', no='try harder', special_opts=('debug', 'quit')):
+        if prompt.confirm(f'found: {collection[0]}. proceed with this?', no='try harder', special_opts=('debug', 'quit')):
             return collection[0]
         return None
     return None

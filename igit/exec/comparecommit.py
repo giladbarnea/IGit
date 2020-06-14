@@ -7,7 +7,7 @@ import sys
 
 from igit.commit import CommitTree
 from igit.repo import Repo
-from igit.util import termcolor
+from more_termcolor import colors
 
 
 @click.command()
@@ -25,7 +25,7 @@ def main(src_hash_or_index, target_hash_or_index):
             target = target_hash_or_index
     else:
         # TODO: compare current to one before
-        sys.exit(termcolor.red(f'current commit is {CommitTree().current}'))
+        sys.exit(colors.red(f'current commit is {CommitTree().current}'))
     repo = Repo()
     webbrowser.open(f"https://{repo.weburl}/branches/compare/{src}%0D{target}#diff")
 

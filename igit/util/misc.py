@@ -31,6 +31,12 @@ def quote(string) -> str:
     return f'"{string}"'
 
 
+def trim_at(string: str, idx: int) -> str:
+    if len(string) > idx:
+        return f'{string[:idx - 3]}...'
+    return string
+
+
 def deephash(obj):
     """Recursively calculates a hash to "unhashable" objects (and normal hashable ones)"""
     # doesnt work with: complex(...), float('nan')

@@ -5,10 +5,11 @@ from typing import Tuple
 import click
 
 from igit.ignore import Gitignore
-from igit.util import shell, termcolor, regex
+from igit.util import shell, regex
 from igit.util.clickextensions import unrequired_opt
 from igit.util.path import ExPath
-from igit.util.termcolor import italic
+from more_termcolor import colors
+from more_termcolor.colors import italic
 
 tabchar = '\t'
 
@@ -32,7 +33,7 @@ def main(items: Tuple[str], exclude):
                 exclude_exts.append(f'":!*.{ex}"')
     
     cmd = 'git diff --color-moved=zebra --find-copies-harder --ignore-blank-lines '
-    print(termcolor.grey(f'items: {items}'))
+    print(colors.dark(f'items: {items}'))
     if not items:
         shell.run(cmd, stdout=sys.stdout)
     # first, *rest = items

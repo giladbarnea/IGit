@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import pytest
 from igit.tests.common import get_permutations_in_size_range, has_letters_and_punc, path_regexes, mixed_suffixes
 from igit.util.path import has_file_suffix, ExPath
 
@@ -95,8 +94,8 @@ def test__ExPath__parent_of__sanity():
 def test__ExPath__subpath_of__sanity():
     home = ExPath('/home')
     gilad = ExPath('/home/gilad')
-    assert gilad.subpath_of(home)
     assert gilad.subpath_of('/home/')
+    assert gilad.subpath_of(home)
     assert gilad.subpath_of(Path('/home'))
 
 

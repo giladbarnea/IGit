@@ -28,7 +28,7 @@ def main(branch):
         # res = requests.get(f'{url}/{branch}')
         # if not res.ok:
         if branch not in btree.branchnames:
-            if prompt.ask(f'"{branch}" not in branches, search?', special_opts=True):
+            if prompt.confirm(f'"{branch}" not in branches, search?', special_opts=True):
                 branch = btree.search(branch)
             else:
                 branch = btree.current

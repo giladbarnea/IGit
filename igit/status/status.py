@@ -3,10 +3,11 @@ import os
 from typing import Tuple, List, Dict
 
 from igit.util.misc import try_convert_to_slice
-from igit.util.path import ExPath, ExPathOrStr,has_file_suffix
-from igit.util import shell, termcolor, cachedprop
+from igit.util.path import ExPath, ExPathOrStr, has_file_suffix
+from igit.util import shell, cachedprop
 from igit import prompt
 from igit.util.search import search_and_prompt
+from more_termcolor import colors
 
 
 class Status:
@@ -71,7 +72,7 @@ class Status:
         #     self._files = [*newfiles, *knownfiles]
         # return self._files
     
-    def search(self, keyword: str) -> str:
+    def search(self, keyword: str) -> ExPath:
         path = ExPath(keyword)
         has_suffix = has_file_suffix(path)
         has_slash = '/' in keyword
@@ -94,7 +95,7 @@ class Status:
         
         ## Full Paths
         
-        print(termcolor.yellow(f"looking in full paths {'with' if has_suffix else 'without'} suffixes..."))
+        print(colors.yellow(f"looking in full paths {'with' if has_suffix else 'without'} suffixes..."))
         for f in files:
             # TODO: integrate into git.search somehow
             for i, part in enumerate(f.parts):
@@ -103,5 +104,5 @@ class Status:
         choice = search_and_prompt(keyword, [str(f) for f in files], criterion='equals')
         if choice:
             return choice
-        print(termcolor.red(f"'{keyword}' didn't match anything :/"))
-        prompt.generic('debug?', special_opts=('debug', 'quit'))
+        print(colors.red(f"'{keyword}' didn't match anything :/"))
+        prompt.generic('debug?', flowopts=('debug', 'quit'))

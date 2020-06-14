@@ -5,9 +5,9 @@ from typing import List, Tuple
 import click
 
 from igit.status import Status
-from igit.util import termcolor
+from more_termcolor import colors
 from igit.util.path import ExPathOrStr
-from igit.prompt import ask
+from igit.prompt import confirm
 
 
 @click.command()
@@ -16,7 +16,7 @@ def main(file):
     gitignore = Path('.gitignore')
     if not gitignore.is_file():
         # TODO: prompt for create
-        sys.exit(termcolor.red(f'{gitignore.absolute()} is not file'))
+        sys.exit(colors.red(f'{gitignore.absolute()} is not file'))
     with gitignore.open(mode='r') as f:
         data = [Path(line.strip()) for line in f.readlines()]
     file = Path(file)

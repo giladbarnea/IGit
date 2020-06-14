@@ -23,10 +23,10 @@ from itertools import chain
 @memoize
 def get_end_with_re_split():
     print('generating end / dont end with re...')
-    end_with_re, dont_end_with_re = split_iter_by(mixed_suffixes(),
-                                                  lambda x: x[-1] in REGEX_CHAR)
+    _end_with_re, _dont_end_with_re = split_iter_by(mixed_suffixes(),
+                                                    lambda x: x[-1] in REGEX_CHAR)
     print('done generating end / dont end with re')
-    return end_with_re, dont_end_with_re
+    return _end_with_re, _dont_end_with_re
 
 
 @memoize
@@ -218,6 +218,13 @@ def test__is_only_regex__truth_cases__manual():
     for val in vals:
         actual = is_only_regex(val)
         assert actual is True
+
+
+def test__is_only_regex__false_cases__manual():
+    vals = ('[',)
+    for val in vals:
+        actual = is_only_regex(val)
+        assert actual is False
 
 
 # ** endswith_regex

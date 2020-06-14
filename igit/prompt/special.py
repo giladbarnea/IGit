@@ -2,7 +2,7 @@ import inspect
 import sys
 from enum import Enum
 
-from igit.util import termcolor
+from more_termcolor import colors
 
 
 # from IPython.con
@@ -31,7 +31,7 @@ class Special(Enum):
         if self == Special.QUIT:
             sys.exit('Aborting')
         if self == Special.CONTINUE:
-            print(termcolor.italic('continuing'))
+            print(colors.italic('continuing'))
             return None
         if self == Special.DEBUG:
             frame = inspect.currentframe()
@@ -39,7 +39,7 @@ class Special(Enum):
             while frame.f_code.co_filename == __file__:
                 frame = frame.f_back
                 up_frames.append(frame.f_code.co_name)
-            print(termcolor.bold(f'u {len(up_frames)}'), termcolor.grey(repr(up_frames)))
+            print(colors.bold(f'u {len(up_frames)}'), colors.dark(repr(up_frames)))
             from ipdb import set_trace
             set_trace(frame, context=30)
             

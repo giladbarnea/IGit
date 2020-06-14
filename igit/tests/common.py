@@ -1,5 +1,8 @@
+import io
 import re
 import string
+import sys
+from contextlib import contextmanager, _RedirectStream, redirect_stdout
 from itertools import permutations, chain
 from typing import Sized, List, Tuple, Iterable
 
@@ -8,6 +11,8 @@ from igit.util.regex import REGEX_CHAR
 
 DOT_OR_QUOTE: re.Pattern = re.compile(r'[.\'"]+')
 letters_and_punc = string.ascii_letters + string.punctuation
+
+# abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\',@=:~#;-&/`_%"
 nonregex = string.ascii_letters + string.digits + ''.join(set(string.punctuation) - set(REGEX_CHAR) - set('.'))
 
 
@@ -72,6 +77,7 @@ def get_permutations_in_size_range(s: Sized, slc: slice, fltr=None) -> List[List
 
 @memoize
 def has_letters_and_punc(stryng) -> bool:
+    """Uses string.ascii_letters and string.punctutation"""
     if len(stryng) < 2:
         return False
     # if re.search(DOT_OR_QUOTE, stryng):
@@ -153,3 +159,34 @@ def mixed_suffixes():
     print('done generating mixed_suffixes')
     assert all(has_letters_and_punc(s) for s in suffixes)
     return suffixes
+
+
+@contextmanager
+def assert_raises(exc, *search_in_args):
+    try:
+        yield
+    except exc as e:
+        if search_in_args:
+            # at least one exception arg needs to have all search strings
+            if not any(all(re.search(re.escape(s), a) for s in search_in_args) for a in list(map(str, e.args))):
+                raise
+        pass
+    except Exception as e:
+        pass
+
+
+class redirect_stdin(_RedirectStream):
+    _stream = 'stdin'
+
+
+@contextmanager
+def simulate_input(val):
+    old_stdin = sys.stdin
+    sys.stdin = io.StringIO(val)
+    try:
+        print(f'before | sys.stdin: ', sys.stdin)
+        yield
+        print(f'after | sys.stdin: ', sys.stdin)
+    
+    finally:
+        sys.stdin = old_stdin

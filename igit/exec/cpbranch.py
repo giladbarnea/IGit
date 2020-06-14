@@ -11,7 +11,7 @@ from igit.util.misc import clip_copy
 def main(branch):
     btree = BranchTree()
     if branch:
-        if prompt.ask('search?'):
+        if prompt.confirm('search?'):
             branch = btree.search(branch)
     else:
         branch = btree.current

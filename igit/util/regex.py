@@ -1,20 +1,21 @@
 import re
 from re import Pattern
 
-from igit.util import termcolor
+from more_termcolor import colors
 
 BACKSLASH: str = '\\'
 FILE_CHAR: str = r'[\w\d-]'
 PATH_WILDCARD: str = fr'[\.\*\\]'
 NOT_PATH_WILDCARD: str = r'[^\.\*\\]'
-FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,4}')
+FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,5}')
 # TRAILING_RE: Pattern = re.compile(fr"({PATH_WILDCARD}*{FILE_CHAR}*)({PATH_WILDCARD}*)")
 # LEADING_RE: Pattern = re.compile(fr'({PATH_WILDCARD}*)(.*$)')
 YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
-ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{\}<>$]+')
-ADV_REGEX_CHAR = BACKSLASH + '+()|[]{}$^<>'
-ADV_REGEX_2CHAR = ['.*', '.+', '.?']
-GLOB_CHAR = '?*'
+
+ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{\}<>$]+')  # TODO: why escape closing curly bracket?
+ADV_REGEX_CHAR = BACKSLASH + '+()|{}$^<>'
+ADV_REGEX_2CHAR = ['.*', '.+', '.?', '(?']
+GLOB_CHAR = '?*![]'
 REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
 
 
@@ -77,7 +78,7 @@ def strip_trailing_path_wildcards(val):
     match = re.match(rf"([*.\\/]*[^*.\\]*)([*.\\/]*)", val)
     groups = match.groups()
     if ''.join(groups) != val:
-        print(termcolor.yellow(f"strip_trailing_path_wildcards({repr(val)}): regex stripped away too much, returning as-is. groups: {', '.join(map(repr, groups))}"))
+        print(colors.yellow(f"strip_trailing_path_wildcards({repr(val)}): regex stripped away too much, returning as-is. groups: {', '.join(map(repr, groups))}"))
         return val
     return groups[0]
 

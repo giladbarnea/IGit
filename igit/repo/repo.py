@@ -1,7 +1,8 @@
 import re
 import sys
 
-from igit.util import shell, termcolor
+from igit.util import shell
+from more_termcolor import colors
 
 
 class Repo:
@@ -38,11 +39,11 @@ class Repo:
             elif self.host == 'github':
                 regex = r'github.com.*(?=\.git)\b'
             else:
-                print(termcolor.yellow(f'repo.weburl unspecific self.host: {self.host}'))
+                print(colors.yellow(f'repo.weburl unspecific self.host: {self.host}'))
                 regex = fr'{self.host}.com.*(?=\.git)\b'
             match = re.search(regex, self.url)
             if not match:
-                sys.exit(termcolor.red(f"regex: {regex} no match to self.url: '{self.url}'"))
+                sys.exit(colors.red(f"regex: {regex} no match to self.url: '{self.url}'"))
             weburl = match.group()
             if isbitbucket and ':cashdash' in self.url:
                 weburl = weburl.replace(':cashdash', '/cashdash')
@@ -55,6 +56,6 @@ class Repo:
             regex = r'(?<=/)[\w\d.-]*(?=\.git)'
             match = re.search(regex, self.url)
             if not match:
-                sys.exit(termcolor.red(f"regex: {regex} no match to self.url: '{self.url}'"))
+                sys.exit(colors.red(f"regex: {regex} no match to self.url: '{self.url}'"))
             self._name = match.group()
         return self._name
