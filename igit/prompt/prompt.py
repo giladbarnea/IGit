@@ -10,6 +10,7 @@ from igit.util import misc
 from igit.util.misc import try_convert_to_idx
 from ipdb import set_trace
 import inspect
+from igit_debug.investigate import logonreturn
 
 if os.getenv('IGIT_DEBUG', False):
     def log(*args, **kwargs):
@@ -31,6 +32,7 @@ class BasePrompt(ABC):
     answer: Union[AnswerTuple, bool, None]
     options: Options
     
+    @logonreturn('self.answer', types=True)
     def __init__(self, question: str, **kwargs):
         self.answer = None
         if 'special_opts' in kwargs:

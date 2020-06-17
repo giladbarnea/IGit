@@ -1,12 +1,13 @@
 import re
 from collections import defaultdict
 from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic
-
+import math
 from fuzzysearch import find_near_matches
 from igit import prompt
 from igit.prompt import Special
-from more_termcolor import colors, colored
+from more_termcolor import colors, colored, cprint
 
+darkprint = lambda s: cprint(s, 'dark')
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
 T = TypeVar('T')
 
@@ -88,7 +89,14 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
     far_matches = Matches(maxsize=5)
     max_l_dist = min(len(keyword) - 1, 17)
     # TODO: sometimes cutoff == max_l_dist
-    for item in collection:
+    coll_len = len(collection)
+    darkprint(f'fuzzy({repr(keyword)}, collection ({coll_len}), cutoff: {cutoff}, max_l_dist: {max_l_dist})')
+    printed_progress = -1
+    for i, item in enumerate(collection):
+        progress = round(i / coll_len, 1)
+        if progress > printed_progress:
+            darkprint(f'{progress * 100}% (near_matches: {near_matches.count}, far_matches: {far_matches.count})')
+            printed_progress = progress
         matches = find_near_matches(keyword, item, max_l_dist=max_l_dist)
         # don't `continue` even if matches is empty
         # lower distance is better
@@ -123,9 +131,8 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
     if not near_matches and not far_matches:
         print(colors.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
     if near_matches:
-        # print(paint.faint(f'fuzzy() → near_matches: {near_matches}\n\tfar_matches: {far_matches}'))
         return near_matches
-    # print(paint.faint(f'fuzzy() → far_matches: {far_matches}\n\tnear_matches: {near_matches}'))
+    darkprint(f'fuzzy() → far_matches')
     return far_matches
 
 

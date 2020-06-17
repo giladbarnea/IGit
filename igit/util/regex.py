@@ -15,7 +15,9 @@ YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
 ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{\}<>$]+')  # TODO: why escape closing curly bracket?
 ADV_REGEX_CHAR = BACKSLASH + '+()|{}$^<>'
 ADV_REGEX_2CHAR = ['.*', '.+', '.?', '(?']
-GLOB_CHAR = '?*![]'
+
+GLOB_CHAR = '?*![]'  # TODO: detect [a-z] but no just -
+
 REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
 
 
@@ -33,6 +35,7 @@ def endswith_regex(val: str):  # doesnt detect single dot
 
 
 def has_regex(val: str):  # doesnt detect single dot
+    """True if has any glob char or advanced regex char"""
     if not val:
         return False
     for i, c in enumerate(val):

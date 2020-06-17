@@ -7,7 +7,7 @@ import os
 # or
 # [sudo] python3.8 setup.py develop
 print('\n', os.getcwd(), '\n', sys.argv, '\n')
-should_prompt = True
+should_prompt = False
 for arg in sys.argv:
     # when installing from any other dir, first arg isn't 'setup.py' but a longer (absolute) path
     if 'pip' in arg or ('setup.py' in arg and len(Path(arg).parts) > 1):
@@ -67,7 +67,7 @@ if should_prompt:
 # dependency_links = ['https://git@github.com/giladbarnea/more_termcolor.git/archive/1.0.0.tar.gz#egg=more_termcolor-1.0.0']
 # print(f'dependency_links: ', '\n', "\n\t".join(dependency_links))
 setup(name='IGit',
-      version='1.0.3',
+      version='1.0.4',
       description='Like IPython, for Git',
       author='Gilad Barnea',
       author_email='giladbrn@gmail.com',
@@ -82,8 +82,9 @@ setup(name='IGit',
           'fuzzysearch',
           'prompt_toolkit',
           'traitlets',
-          'igit_debug'],
-      tests_require=['pytest', 'hypothesis', 'birdseye', 'ipdb', 'IPython', 'logbook'],
+          # 'igit_debug @ /home/gilad/Code/igit_debug#egg=igit_debug'
+          ],
+      extras_require={'tests': ['pytest', 'hypothesis', 'birdseye', 'ipdb', 'IPython', 'logbook']},
       classifiers=[
           # https://pypi.org/classifiers/
           'Development Status :: 2 - Pre-Alpha',

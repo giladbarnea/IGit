@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import TypeVar, Generic, Dict, Generator, Tuple, Any, Type
 
+from more_termcolor import cprint
+
 from igit.util.regex import YES_OR_NO
 
 T = TypeVar('T')
@@ -63,9 +65,9 @@ class Items(Dict[str, Item], ABC):
     
     def __init__(self, items):
         super().__init__()
-        print(f'items: {items}')
+        cprint(f'items: {items}', 'dark')
         for value, identifier in self.items_gen(items):
-            print(f'\tvalue: {repr(value)}', f'identifier: {repr(identifier)}', sep=' | ')
+            cprint(f'\tvalue: {repr(value)} | identifier: {repr(identifier)}', 'dark')
             item = self._itemcls(value, identifier)
             if item.identifier not in self:
                 self.store(item)

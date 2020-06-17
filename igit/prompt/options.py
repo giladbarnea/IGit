@@ -1,16 +1,12 @@
 from abc import ABC
-from contextlib import suppress
-from typing import Tuple, Union, NoReturn, Callable, Any, Iterable
+from typing import Union, NoReturn, Callable, Any, Iterable
 
-from igit.debug import ExcHandler
+from more_termcolor import colors
+
 from igit.debug.err import DeveloperError
-from igit.prompt.item import Items, NumItems, LexicItems, KeywordItems, Item
+from igit.prompt.item import NumItems, LexicItems, KeywordItems, Item
 from igit.prompt.special import Special
 from igit.prompt.util import has_duplicates
-from igit.util.cache import memoize
-from more_termcolor import colors, colored
-from ipdb import set_trace
-import inspect
 
 
 class Options(ABC):
@@ -205,6 +201,7 @@ class NumOptions(Options):
 
 
 class LexicOptions(Options):
+    _itemscls = LexicItems
     items: LexicItems
     
     def __init__(self, *opts: str):

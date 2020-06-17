@@ -1,7 +1,7 @@
 import re
 from typing import List, Dict
 
-from igit.debug import ExcHandler
+from igit_debug import ExcHandler
 from igit.util.search import search_and_prompt
 
 from igit.util import shell, cachedprop
