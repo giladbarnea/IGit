@@ -1,44 +1,38 @@
+import os
 from abc import ABC
 from typing import Union, Tuple, Any, overload
-import os
+
+from igit_debug.investigate import logonreturn, logreturn
 from more_termcolor import colors
 
-from igit.prompt.item import Item
+from igit.abcs import prettyrepr
+from igit.prompt.item import MutableItem, FlowItem, LexicItem
 from igit.prompt.options import Options, NumOptions, LexicOptions
-from igit.prompt.special import Special
 from igit.util import misc
-from igit.util.misc import try_convert_to_idx
-from ipdb import set_trace
-import inspect
-from igit_debug.investigate import logonreturn
-
-if os.getenv('IGIT_DEBUG', False):
-    def log(*args, **kwargs):
-        print(colors.white(f'\n{args}, {kwargs}'))
-
-else:
-    def log(*args, **kwargs):
-        pass
+from igit.util.misc import try_convert_to_idx, darkprint
 
 
 def _input(s):
     return misc.unquote(input(colors.brightwhite(s)))
 
 
-AnswerTuple = Tuple[str, Union[str, Special]]
+# (str, str) or (str, FlowItem)
+AnswerTuple = Union[Tuple[str, MutableItem], Tuple[str, FlowItem], Tuple[str, LexicItem]]
+Answer = Union[AnswerTuple, bool]
 
 
-class BasePrompt(ABC):
-    answer: Union[AnswerTuple, bool, None]
+@prettyrepr
+class BasePrompt:
+    # bool or (str, MutableItem)
+    answer: Answer
     options: Options
     
     @logonreturn('self.answer', types=True)
     def __init__(self, question: str, **kwargs):
-        self.answer = None
-        if 'special_opts' in kwargs:
-            self.options.set_special_options(kwargs.pop('special_opts'))
-        elif 'flowopts' in kwargs:
-            self.options.set_special_options(kwargs.pop('flowopts'))
+        # noinspection PyTypeChecker
+        self.answer: Answer = None
+        if 'flowopts' in kwargs:
+            self.options.set_flow_opts(kwargs.pop('flowopts'))
         try:
             free_input = kwargs.pop('free_input')
         except KeyError:
@@ -48,31 +42,39 @@ class BasePrompt(ABC):
         self.options.set_kw_options(**kwargs)
         
         # *  Complex Prompt
+        
         dialog_string = self.dialog_string(question, free_input=free_input)
         # question = self.dialog_string(question, options, free_input=free_input)
         key, answer = self.get_answer(dialog_string, free_input=free_input)
-        
-        # *  Special Answer
+        darkprint(f'{repr(self)} key, answer: {key}, {answer}')
+        # *  FlowItem Answer
         try:
-            # raises ValueError if answer isn't Special
-            special_answer: Special = Special.from_full_name(answer)
+            # raises ValueError if answer isn't FlowItem
+            # special_answer: FlowItem = FlowItem.from_full_name(answer)
+            flow_answer: FlowItem = FlowItem(answer)
+            darkprint(f'{repr(self)} flow_answer: {flow_answer}')
+            flow_answer.execute()
             
-            special_answer.execute_answer()
-            
-            if special_answer == Special.DEBUG:
-                # debugger already started and finished in special_answer.execute_answer() (user 'continue'd here)
+            if flow_answer.DEBUG:
+                # debugger already started and finished in flow_answer.execute() (user 'continue'd here)
                 self.answer = self.get_answer(dialog_string)
-            elif special_answer == Special.CONTINUE:
-                self.answer = key, Special.CONTINUE
+            elif flow_answer.CONTINUE:
+                self.answer: Tuple[str, FlowItem] = key, flow_answer
             else:
                 raise NotImplementedError
         except ValueError as e:
-            # *  DIDN'T answer any special
-            if self.options.all_yes_or_no():
+            # *  DIDN'T answer any flow
+            
+            if hasattr(answer, "is_yes_or_no") and answer.is_yes_or_no:
                 # prompt.confirm('Coffee?', 'yes', 'no', 'quit') → didn't answer 'quit' → boolean self.answer
-                self.answer: bool = key.lower() == 'y'
+                darkprint(f'{repr(self)} no flow chosen, answer is yes / no. key: {repr(key)}, answer: {repr(answer)}, options: {self.options}')
+                self.answer: bool = key.lower() in ('y', 'yes')
             else:
-                self.answer = key, answer
+                darkprint(f'{repr(self)} no flow chosen, answer is not yes / no. key: {repr(key)}, answer: {repr(answer)}, options: {self.options}')
+                self.answer: Tuple[str, MutableItem] = key, answer
+    
+    def __repr__(self) -> str:
+        return f'{self.prepr()}(answer={repr(self.answer)}, options={repr(self.options)})'
     
     def dialog_string(self, question: str, *, free_input: bool) -> str:
         strings = []
@@ -80,21 +82,25 @@ class BasePrompt(ABC):
             strings.append(f'[{optkey}]: {optval}')
         options_str = '\n\t'.join(strings)
         question_str = f'{question}'
-        if free_input:
-            question_str += ' (free input allowed)'
+        # if free_input:
+        #     question_str += ' (free input allowed)'
         if options_str:
-            return f'{question_str}\n\t{options_str}\t'
+            dialog_string = f'{question_str}\n\t{options_str}\n\t'
         else:
-            return question_str + '\t'
+            dialog_string = question_str + '\n\t'
+        if free_input:
+            dialog_string += '(free input allowed)\n\t'
+        return dialog_string
     
     @overload
-    def get_answer(self, dialog_string: str, *, free_input=False) -> Tuple[str, Union[str, Special, Item]]:
+    def get_answer(self, dialog_string: str, *, free_input=False) -> AnswerTuple:
         ...
     
     @overload
-    def get_answer(self, dialog_string: str, *, free_input=True) -> Tuple[Union[None, str], Union[str, Special, Item]]:
+    def get_answer(self, dialog_string: str, *, free_input=True) -> Tuple[None, str]:
         ...
     
+    @logreturn
     def get_answer(self, dialog_string: str, *, free_input=False):
         ans_key = _input(dialog_string)
         items = self.options.items
@@ -104,19 +110,21 @@ class BasePrompt(ABC):
                 print(colors.white(f"Returning free input: (None, '{ans_key}')"))
                 return None, ans_key
             else:
+                # TODO: this doesnt account for free_input = True, but no ans_key ('')
                 while ans_key not in items:
-                    set_trace(inspect.currentframe(), context=30)
                     print(colors.brightyellow(f"Unknown option: '{ans_key}'"))
                     ans_key = _input(dialog_string)
         ans_value = items[ans_key]
-        if hasattr(ans_value, 'val'):
-            ans_value = ans_value.val
+        # this is commented out because BasePrompt init needs to check if answer.is_yes_or_no
+        # if hasattr(ans_value, 'value'):
+        #     ans_value = ans_value.value
         
         return ans_key, ans_value
 
 
 class LexicPrompt(BasePrompt):
     options: LexicOptions
+    answer: Tuple[str, LexicItem]
     
     def __init__(self, prompt: str, *options: str, **kwargs):
         self.options = LexicOptions(*options)
@@ -124,6 +132,8 @@ class LexicPrompt(BasePrompt):
 
 
 class Confirmation(LexicPrompt):
+    options: LexicOptions
+    answer: bool
     
     def __init__(self, prompt: str, *options: str, **kwargs):
         if 'free_input' in kwargs:
@@ -133,6 +143,7 @@ class Confirmation(LexicPrompt):
 
 class Action(BasePrompt):
     options: LexicOptions
+    answer: Tuple[str, LexicItem]
     
     def __init__(self, question: str, *actions: str, **kwargs):
         if not actions:
@@ -144,8 +155,8 @@ class Action(BasePrompt):
 
 
 class Choice(BasePrompt):
-    answer: AnswerTuple
     options: NumOptions
+    answer: Tuple[str, MutableItem]
     
     def get_answer(self, question: str, *, free_input=False) -> Tuple[Union[None, str, int], Any]:
         ans_key, ans_value = super().get_answer(question, free_input=free_input)
@@ -169,17 +180,7 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
     return LexicPrompt(prompt, *options, **kwargs).answer
 
 
-@overload
-def choose(prompt, *options: str) -> Tuple[str, str]:
-    ...
-
-
-@overload
-def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> AnswerTuple:
-    ...
-
-
-def choose(prompt, *options, **kwargs):
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[str, MutableItem]:
     """Presents `options` by *index*. Expects at least one option"""
     
     answer = Choice(prompt, *options, **kwargs).answer
@@ -193,31 +194,21 @@ def confirm(prompt, **kwargs: Union[str, tuple, bool]) -> bool:
     If `options` contains any "special options", they are presented by key.
     Examples::
 
-        confirm('ice cream?', special_opts='quit') → [y], [n], [q]
-        confirm('pizza?', special_opts=True) → [y], [n], [c], [d], [q]
-        confirm('burger?', special_opts=('quit', 'debug')) → [y], [n], [q], [d]
+        confirm('ice cream?', flowopts='quit') → [y], [n], [q]
+        confirm('pizza?', flowopts=True) → [y], [n], [c], [d], [q]
+        confirm('burger?', flowopts=('quit', 'debug')) → [y], [n], [q], [d]
         confirm('proceed?') → [y], [n]
     """
     
     return Confirmation(prompt, 'yes', 'no', **kwargs).answer
 
 
-@overload
-def action(question: str, *actions: str) -> Tuple[str, str]:
-    ...
-
-
-@overload
-def action(question: str, *actions: str, **kwargs: Union[str, tuple, bool]) -> AnswerTuple:
-    ...
-
-
-def action(question, *actions, **kwargs):
+def action(question, *actions, **kwargs: Union[str, tuple, bool]) -> Tuple[str, LexicItem]:
     """Presents `options` by *key*.
     Compared to `confirm()`, `action()` can't be used to prompt for yes/no but instead prompts for strings.
     Example::
 
-        action('uncommitted changes', 'stash & apply', special_opts = True)
+        action('uncommitted changes', 'stash & apply', flowopts = True)
 
     :param actions: must not be empty, and cannot contain 'yes' or 'no'.
     :param special_opts:
@@ -234,8 +225,8 @@ def action(question, *actions, **kwargs):
     #     raise ValueError(f"Actions cannot include a 'yes' or 'no'. Received: {repr(actions)}")
     #
     # # *  special options
-    # if 'special_opts' in kwargs:
-    #     options.set_special_options(kwargs.pop('special_opts'))
+    # if 'flowopts' in kwargs:
+    #     options.set_flow_opts(kwargs.pop('flowopts'))
     #
     #     # * free_input
     # try:

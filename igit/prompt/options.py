@@ -4,80 +4,93 @@ from typing import Union, NoReturn, Callable, Any, Iterable
 from more_termcolor import colors
 
 from igit.debug.err import DeveloperError
-from igit.prompt.item import NumItems, LexicItems, KeywordItems, Item
-from igit.prompt.special import Special
+from igit.prompt.item import MutableItem, Items
+from igit.prompt.item import NumItems, LexicItems, KeywordItems
 from igit.prompt.util import has_duplicates
+from igit.util.misc import darkprint
+from .item import FlowItem
+from ..abcs import prettyrepr
 
 
+@prettyrepr
 class Options(ABC):
-    # items: Items
+    items: Items
     _itemscls = None
     
-    # special_opts: Tuple['Special', ...]
+    # flowopts: Tuple['FlowItem', ...]
     
     def __init__(self, *opts: str):
-        self.items = self._itemscls(opts)
         if has_duplicates(opts):
-            raise ValueError(f"Duplicate opts: ", opts)
-        # self.special_opts = tuple()
+            raise ValueError(f"{repr(self)} | __init__(opts) duplicate opts: ", opts)
+        self.items = self._itemscls(opts)
+        # self.flowopts = tuple()
         # self._values = None
         # self._items = None
         # self._indexeditems = None
         # self._all_yes_or_no = None  # calculated only when None (not True or False)
     
     def __bool__(self):
-        # return bool(self.items) or bool(self.special_opts)
+        # return bool(self.items) or bool(self.flowopts)
         return bool(self.items)
     
     def __repr__(self):
-        # return f'Options(opts = {repr(self.items)}, special_opts = {repr(self.special_opts)})'
-        return f'Options(opts = {repr(self.items)})'
+        return f'{self.prepr()}(items = {repr(self.items)})'
     
-    def set_special_options(self, special_opts: Union[str, Iterable, bool]) -> NoReturn:
-        """Sets `self.special_opts` with Special objects.
-        Handles passing different types of special_opts (single string, tuple of strings, or boolean), and returns a Special tuple."""
-        if special_opts is True:
-            special_opts = tuple(Special.__members__.values())
-        elif isinstance(special_opts, str):  # 'quit'
-            special_opts = (Special.from_full_name(special_opts),)
+    def set_flow_opts(self, flowopts: Union[str, Iterable, bool]) -> NoReturn:
+        """Sets `self.flowopts` with FlowItem objects.
+        Handles passing different types of flowopts (single string, tuple of strings, or boolean), and returns a FlowItem tuple."""
+        darkprint(f'{self.__class__.__qualname__}.set_flow_opts(flowopts={repr(flowopts)})')
+        if flowopts is True:
+            flowopts = tuple(FlowItem.__members__.values())
+        elif isinstance(flowopts, str):  # 'quit'
+            # flowopts = (FlowItem.from_full_name(flowopts),)
+            flowopts = (FlowItem(flowopts),)
         else:
-            special_opts = tuple(map(Special.from_full_name, special_opts))
-            if has_duplicates(special_opts):
-                # todo: check if duplicates with normal opts? i think it's done somewhere else?
-                raise ValueError(f"Duplicate special_opts: ", special_opts)
+            # flowopts = tuple(map(FlowItem.from_full_name, flowopts))
+            flowopts = tuple(map(FlowItem, flowopts))
+            if has_duplicates(flowopts):
+                raise ValueError(f"{repr(self)}\nset_special_options(flowopts) | duplicate flowopts: {repr(flowopts)}")
         
-        for special in special_opts:
-            self.items.update({special.value: special.name})
+        for flowopt in flowopts:
+            self.items.store(flowopt)
+            # if flowopt.value in self.items:
+            #     raise ValueError(f'{repr(self)}\nset_special_options() | flowopt.value ({repr(flowopt.value)}) already exists in self.\nflowopt: {repr(flowopt)}.\nflowopts: {repr(flowopts)}')
+            # self.items[flowopt.value] = flowopt.name
         return None
     
     def set_kw_options(self, **kw_opts: Union[str, tuple, bool]) -> None:
+        """foo='bar', baz='continue'"""
+        darkprint(f'{self.__class__.__qualname__}.set_kw_options(kw_opts={repr(kw_opts)})')
         if not kw_opts:
             return
         if has_duplicates(kw_opts.values()):
-            raise ValueError(f"Duplicate kw_opts: ", kw_opts)
+            raise ValueError(f"{repr(self)}\nset_kw_options() duplicate kw_opts: {repr(kw_opts)}")
         if 'free_input' in kw_opts:
-            raise DeveloperError(f"set_kw_options(): 'free_input' found in kw_opts, should have popped it out earlier")
-        non_special_kw_opts = dict()
+            raise DeveloperError(f"{repr(self)}\nset_kw_options() | 'free_input' found in kw_opts, should have popped it out earlier.\nkw_opts: {repr(kw_opts)}")
+        non_flow_kw_opts = dict()
         for kw in kw_opts:
             opt = kw_opts[kw]
             if kw in self.items:
-                raise ValueError(f"set_kw_options(): '{kw}' in kw_opts but was already in self.items", repr(self))
+                raise ValueError(f"{repr(self)}\nset_kw_options() | '{kw}' in kw_opts but was already in self.items.\nkw_opts: {repr(kw_opts)}")
+            
             try:
-                special = Special.from_full_name(opt)
+                # flowitem = FlowItem.from_full_name(opt)
+                flowitem = FlowItem(opt)
             except ValueError:
-                non_special_kw_opts[kw] = opt
+                non_flow_kw_opts[kw] = opt
             else:
-                self.items[kw] = special.name
+                # not using self.items.store(flowitem) because kw isn't flowitem.identifier
+                self.items[kw] = flowitem
         
-        if not non_special_kw_opts:
+        if not non_flow_kw_opts:
             return
         
-        kw_items = KeywordItems(non_special_kw_opts)
+        kw_items = KeywordItems(non_flow_kw_opts)
         
         self.items.update(**kw_items)
         # self.kw_opts = kw_opts
     
-    def any_item(self, predicate: Callable[[Item], Any]) -> bool:
+    def any_item(self, predicate: Callable[[MutableItem], Any]) -> bool:
         for item in self.items.values():
             if predicate(item):
                 return True
@@ -90,7 +103,7 @@ class Options(ABC):
                 if not item.is_yes_or_no:
                     return False
             except AttributeError:
-                print(colors.brightblack(f'Options.all_yes_or_no() AttributeError with item: {item} {type(item)}. Ignoring.'))
+                print(colors.brightblack(f'{self.__class__.__qualname__}.all_yes_or_no() AttributeError with item.is_yes_or_no: {item} {type(item)}. Ignoring.'))
         return True
         
         # nonspecials = set(self.opts)
@@ -106,7 +119,7 @@ class Options(ABC):
     
     # @cachedprop
     # def indexeditems(self) -> dict:
-    #     # TODO: create an Items class (maybe also an Item class?)
+    #     # TODO: create an Items class (maybe also an MutableItem class?)
     #     indexeditems = dict()
     #     for idx, opt in enumerate(self.opts):
     #         indexeditems[str(idx)] = opt
@@ -114,7 +127,7 @@ class Options(ABC):
     #         # * self.kw_opts
     #     self._update_kw_opts_into_items(indexeditems)
     #
-    #     # * self.special_opts
+    #     # * self.flowopts
     #     self._update_special_opts_into_items(indexeditems)
     #
     #     return indexeditems
@@ -171,7 +184,7 @@ class Options(ABC):
     #     # * self.kw_opts
     #     self._update_kw_opts_into_items(items)
     #
-    #     # * self.special_opts
+    #     # * self.flowopts
     #     self._update_special_opts_into_items(items)
     #
     #     return items
@@ -184,10 +197,10 @@ class Options(ABC):
     #         items[k] = opt
     #
     # def _update_special_opts_into_items(self, items: dict):
-    #     for spec in self.special_opts:
+    #     for spec in self.flowopts:
     #         if spec.value in items:
-    #             raise NotImplementedError("special_opts clashes with items. displaying self.opts, self.kw_opts, special_opts and items:",
-    #                                       self.opts, self.kw_opts, self.special_opts, items)
+    #             raise NotImplementedError("flowopts clashes with items. displaying self.opts, self.kw_opts, flowopts and items:",
+    #                                       self.opts, self.kw_opts, self.flowopts, items)
     #         items[spec.value] = spec.name
 
 
@@ -195,15 +208,15 @@ class NumOptions(Options):
     _itemscls = NumItems
     items: NumItems
     
-    def __init__(self, *opts: str):
-        self.items = NumItems(opts)
-        super().__init__(*opts)
+    # def __init__(self, *opts: str):
+    #     self.items = NumItems(opts)
+    #     super().__init__(*opts)
 
 
 class LexicOptions(Options):
     _itemscls = LexicItems
     items: LexicItems
     
-    def __init__(self, *opts: str):
-        self.items = LexicItems(opts)
-        super().__init__(*opts)
+    # def __init__(self, *opts: str):
+    #     self.items = LexicItems(opts)
+    #     super().__init__(*opts)

@@ -9,7 +9,7 @@ from igit.util.regex import (strip_trailing_path_wildcards,
                              endswith_regex,
                              is_only_regex,
                              has_regex,
-                             is_glob,
+                             has_glob,
                              has_adv_regex,
                              make_word_separators_optional,
                              GLOB_CHAR,
@@ -128,20 +128,20 @@ def test__has_adv_regex__mixed_string():
         assert has_adv_regex(stryng) is True
 
 
-# ** is_glob
+# ** has_glob
 def test__is_glob__nonregex_char():
     for c in nonregex:
-        assert is_glob(c) is False
+        assert has_glob(c) is False
 
 
 def test__is_glob__glob_char():
     for c in GLOB_CHAR:
-        assert is_glob(c) is True
+        assert has_glob(c) is True
 
 
 def test__is_glob__adv_regex_char():
     for c in ADV_REGEX_CHAR:
-        assert is_glob(c) is False
+        assert has_glob(c) is False
 
 
 def test__is_glob__glob__manual():
@@ -160,7 +160,7 @@ def test__is_glob__glob__manual():
         
         ]
     for glob in globs:
-        assert is_glob(glob) is True
+        assert has_glob(glob) is True
 
 
 def test__is_glob__truth_cases__manual():
@@ -173,13 +173,13 @@ def test__is_glob__truth_cases__manual():
         ]
     
     for regex in globes:
-        assert is_glob(regex) is False
+        assert has_glob(regex) is False
 
 
 def test__is_glob__nonregex_string():
     nonregex_strings = get_permutations(nonregex + '.', 3)
     for stryng in nonregex_strings:
-        assert is_glob(stryng) is False
+        assert has_glob(stryng) is False
 
 
 # ** is_only_regex

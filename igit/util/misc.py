@@ -1,7 +1,8 @@
 import os
 
 import re
-from pprint import pformat
+
+from more_termcolor import cprint
 
 
 def clip_copy(text: str):
@@ -35,31 +36,6 @@ def trim_at(string: str, idx: int) -> str:
     if len(string) > idx:
         return f'{string[:idx - 3]}...'
     return string
-
-
-def deephash(obj):
-    """Recursively calculates a hash to "unhashable" objects (and normal hashable ones)"""
-    # doesnt work with: complex(...), float('nan')
-    try:
-        return hash(obj)
-    except TypeError:
-        if hasattr(obj, '__iter__'):
-            if not obj:  # empty collection
-                return hash(repr(obj))  # unique for () vs [] vs {} etc
-            try:
-                return deephash(frozenset(sorted(obj.items())))  # dict-like
-            except TypeError:  # nested, non dict-like unhashable items ie { 'foo': [[5]] }
-                lst = []
-                for x in obj:
-                    lst.append(deephash(x))
-                return deephash(tuple(lst))
-            except AttributeError:  # no items() method, probably a list or tuple
-                lst = []
-                for x in obj:
-                    lst.append(deephash(x))
-                return deephash(tuple(lst))
-        else:
-            return hash(pformat(obj))
 
 
 def is_pycharm():
@@ -105,3 +81,23 @@ def try_convert_to_idx(val: str) -> int:
         return val
     except AttributeError as e:
         return val
+
+
+def darkprint(string):
+    cprint(string, 'dark')
+
+
+def greenprint(string):
+    cprint(string, 'green')
+
+
+def yellowprint(string):
+    cprint(string, 'yellow')
+
+
+def brightyellowprint(string):
+    cprint(string, 'bright yellow')
+
+
+def brightredprint(string):
+    cprint(string, 'bright red')

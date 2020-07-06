@@ -1,13 +1,13 @@
 import functools
+from pprint import pformat
 from typing import Optional, Callable, Any
-
-from igit.util.misc import deephash
 
 UNSPECIFIED = object()
 
 
-def cachedprop(_fn=None):
-    def wrap(fn):
+def cachedprop(_fn=None) -> 'PropCache':
+    @functools.wraps(_fn)
+    def wrap(fn) -> PropCache:
         ret = PropCache(fn)
         return ret
     
@@ -73,21 +73,12 @@ class PropCache(property):
 def memoize(fun):
     """A simple memoize decorator for functions supporting (hashable)
     positional arguments.
-    It also provides a cache_clear() function for clearing the cache:
-
-    >>> @memoize
-    ... def foo()
-    ...     return 1
-        ...
-    >>> foo()
-    1
-    >>> foo.cache_clear()
-    >>>
+    It also provides a clear_cache() function for clearing the cache:
     """
     
     @functools.wraps(fun)
     def wrapper(*args, **kwargs):
-        key = (args, frozenset(sorted(kwargs.items())))
+        key = (fun, args, frozenset(sorted(kwargs.items())))
         try:
             try:
                 return cache[key]
@@ -102,10 +93,35 @@ def memoize(fun):
                 cache[deephash(key)] = ret
             return ret
     
-    def cache_clear():
+    def clear_cache():
         """Clear cache."""
         cache.clear()
     
     cache = {}
-    wrapper.cache_clear = cache_clear
+    wrapper.clear_cache = clear_cache
     return wrapper
+
+
+def deephash(obj):
+    """Recursively calculates a hash to "unhashable" objects (and normal hashable ones)"""
+    # doesnt work with: complex(...), float('nan')
+    try:
+        return hash(obj)
+    except TypeError:
+        if hasattr(obj, '__iter__'):
+            if not obj:  # empty collection
+                return hash(repr(obj))  # unique for () vs [] vs {} etc
+            try:
+                return deephash(frozenset(sorted(obj.items())))  # dict-like
+            except TypeError:  # nested, non dict-like unhashable items ie { 'foo': [[5]] }
+                lst = []
+                for x in obj:
+                    lst.append(deephash(x))
+                return deephash(tuple(lst))
+            except AttributeError:  # no items() method, probably a list or tuple
+                lst = []
+                for x in obj:
+                    lst.append(deephash(x))
+                return deephash(tuple(lst))
+        else:
+            return hash(pformat(obj))

@@ -1,13 +1,16 @@
 import re
 from collections import defaultdict
 from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic
-import math
-from fuzzysearch import find_near_matches
-from igit import prompt
-from igit.prompt import Special
-from more_termcolor import colors, colored, cprint
 
-darkprint = lambda s: cprint(s, 'dark')
+from fuzzysearch import find_near_matches
+from more_termcolor import colors
+
+from igit import prompt
+from igit.prompt.item import FlowItem
+from igit.util.misc import darkprint
+from ipdb import set_trace
+import inspect
+
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
 T = TypeVar('T')
 
@@ -96,6 +99,10 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         progress = round(i / coll_len, 1)
         if progress > printed_progress:
             darkprint(f'{progress * 100}% (near_matches: {near_matches.count}, far_matches: {far_matches.count})')
+            if near_matches.count ^ far_matches.count:
+                # exactly one is Truthy
+                coll = next(filter(bool, [near_matches, far_matches]))
+                darkprint(repr(coll))
             printed_progress = progress
         matches = find_near_matches(keyword, item, max_l_dist=max_l_dist)
         # don't `continue` even if matches is empty
@@ -140,12 +147,12 @@ def _choose_from_many(collection, *promptopts) -> Optional[str]:
     if collection:
         # *  many
         if len(collection) > 1:
-            i, choice = prompt.choose(f"found {len(collection)} choices, please choose:", *collection, special_opts=True)
-            if choice == Special.CONTINUE:
+            i, choice = prompt.choose(f"found {len(collection)} choices, please choose:", *collection, flowopts=True)
+            if choice == FlowItem.CONTINUE:
                 return None
             return collection[i]
         # *  single
-        if prompt.confirm(f'found: {collection[0]}. proceed with this?', no='try harder', special_opts=('debug', 'quit')):
+        if prompt.confirm(f'found: {collection[0]}. proceed with this?', no='try harder', flowopts=('debug', 'quit')):
             return collection[0]
         return None
     return None

@@ -10,7 +10,7 @@ from igit import git, prompt, util
 from igit.exec.ignore import main as ignore
 from igit.status import Status
 from igit.util import shell, misc
-from more_termcolor import colors
+from more_termcolor import colors, cprint
 
 
 def verify_shebang(f: Path, lines):
@@ -18,9 +18,10 @@ def verify_shebang(f: Path, lines):
     firstline = lines[0].splitlines()[0]
     if not re.fullmatch(regex, firstline):
         raise NotImplementedError()
+        # noinspection PyUnreachableCode
         answer = prompt.action(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}')",
                                'add to .gitignore', 'add python3.7 shebang', 'add python3.8 shebang',
-                               special_opts=True)
+                               flowopts=True)
         
         if answer == '0':
             ignore([f])
@@ -37,24 +38,20 @@ def verify_shebang(f: Path, lines):
 
 
 def handle_large_files(cwd, largepaths: Dict[Path, float]):
-    print(colors.yellow(f'{len(largepaths)} large paths sized >= 30MB found:'))
+    cprint(f'{len(largepaths)} large paths sized >= 30MB found:', 'bright yellow')
     for abspath, mbsize in largepaths.items():
         stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
         if abspath.is_dir():
             stats += f' ({len(list(abspath.iterdir()))} sub items)'
         print(stats)
-    answer = prompt.action('Choose:', 'ignore', special_opts=True)
-    if answer == 'i':
+    key, answer = prompt.action('What to do?', 'ignore all', 'skip all', 'choose individually', flowopts=True)
+    if key == 'i':
         ignore([p.relative_to(cwd) for p in largepaths])
 
 
 def handle_empty_file(f):
-    answer = prompt.action(f"{f} is new and has no content, what to do?", 'ignore', special_opts=True)
-    if answer == 'd':
-        from ipdb import set_trace
-        import inspect
-        set_trace(inspect.currentframe(), context=50)
-    elif answer == 'i':
+    key, answer = prompt.action(f"{f} is new and has no content, what to do?", 'ignore', flowopts=True)
+    if answer == 'i':
         ignore([str(f)])
 
 
@@ -72,16 +69,16 @@ def main(commitmsg: str):
         statuce = status.file_status_map[f]
         if 'D' in statuce:
             continue
-        if ('A' in statuce
-                and f.suffix == '.py'
-                and not f.name.startswith('__')
-                and cwd == '/home/gilad/Code/MyTool'):
-            with f.open(mode='r+') as opened:
-                lines = opened.readlines()
-            if not lines:
-                handle_empty_file(f)
-            else:
-                verify_shebang(f, lines)
+        # if ('A' in statuce
+        #         and f.suffix == '.py'
+        #         and not f.name.startswith('__')
+        #         and cwd == '/home/gilad/Code/MyTool'):
+        #     with f.open(mode='r+') as opened:
+        #         lines = opened.readlines()
+        #     if not lines:
+        #         handle_empty_file(f)
+        #     else:
+        #         verify_shebang(f, lines)
         # TODO: check if already in gitignore and just not removed from cache
         # populate largepaths
         abspath = cwd / f
@@ -92,7 +89,7 @@ def main(commitmsg: str):
             else:
                 mb = abspath.lstat().st_size / 1000000
         else:
-            print(f'does not exist: "{abspath}"')
+            cprint(f'does not exist: {repr(abspath)}', 'yellow')
         if mb >= 30:
             largepaths[abspath] = mb
     if largepaths:

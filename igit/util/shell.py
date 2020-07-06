@@ -1,14 +1,27 @@
 import shlex
 import subprocess as sp
-from typing import Union, List
+from typing import Union, List, Literal
 
 from igit_debug import ExcHandler
-from igit.util import misc
 from more_termcolor import colors
 
+from igit.util import misc
+from igit.util.misc import yellowprint, brightyellowprint
 
-def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
+
+def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Literal['short', 'summary', 'full']] = True,
         input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE):
+    """
+    
+    :param cmds:
+    :param printout:
+    :param printcmd:
+    :param raiseonfail: A bool or either 'short', 'summary', 'full'. Controls output of ExcHandler. True is equiv to 'full'.
+    :param input:
+    :param stdout:
+    :param stderr:
+    :return:
+    """
     # TODO: poll every second for long processes, like git clone
     outs = []
     for cmd in cmds:
@@ -17,11 +30,11 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
         try:
             runargs = dict()
             if isinstance(stdout, str):
-                print(colors.yellow(f'shell.run() stdout is str, not passing it: {misc.trim_at(stdout, 60)}'))
+                yellowprint(f'shell.run() stdout is str, not passing it: {misc.trim_at(stdout, 60)}')
             else:
                 runargs['stdout'] = stdout
             if isinstance(stderr, str):
-                print(colors.yellow(f'shell.run() stderr is str, not passing it: {misc.trim_at(stderr, 60)}'))
+                yellowprint(f'shell.run() stderr is str, not passing it: {misc.trim_at(stderr, 60)}')
             else:
                 runargs['stderr'] = stderr
             if input:
@@ -35,15 +48,19 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail=True,
             
             if proc.stderr:
                 stderr = proc.stderr.decode().strip()
-                if stderr.endswith('Permission denied'):
-                    raise PermissionError(stderr)
-                print(colors.brightyellow(stderr))
+                brightyellowprint(stderr)
         
         except Exception as e:
             print(colors.brightred(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
             hdlr = ExcHandler(e)
             if raiseonfail:
-                print(hdlr.full())
+                if raiseonfail is True:
+                    print(hdlr.full())
+                else:
+                    get_trace_fn = getattr(hdlr, raiseonfail, None)
+                    if get_trace_fn is None:
+                        brightyellowprint(f'ExcHandler doesnt have attr: {raiseonfail}')
+                    print(get_trace_fn())
                 raise e
             print(hdlr.summary())
         else:

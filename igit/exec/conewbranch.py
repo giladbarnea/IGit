@@ -27,7 +27,7 @@ def main(name):
     stash = False
     if status:
         os.system('git status')
-        answer = prompt.action('Uncommitted changes', 'stash → apply', 'just checkout', 'reset --hard', special_opts=True)
+        answer = prompt.action('Uncommitted changes', 'stash → apply', 'just checkout', 'reset --hard', flowopts=True)
         if answer == 's':
             stash = True
             shell.run('git stash')
