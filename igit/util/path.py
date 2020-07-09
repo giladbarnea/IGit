@@ -197,11 +197,12 @@ class ExPath(PosixPath):
             return False
     
     def exists(self) -> bool:
+        """Returns True if file or dir exist.
+        In case self has globbing, return True if globbing yields anything
+        (vanilla globbing yields only existing paths)"""
         if super().exists():
             return True
         try:
-            # maybe self has globbing, in which case return True if globbing yields anything
-            # (vanilla globbing yields only existing paths)
             return bool(list(self.glob()))
         except TypeError as e:
             return False

@@ -3,25 +3,26 @@ import sys
 import webbrowser
 
 import click
-
-from igit import prompt
-from igit.branch import BranchTree
-from igit.repo import Repo
 from more_termcolor import colors
 
-btree = BranchTree()
+from igit.branches import Branches
+from igit.repo import Repo
+from igit.util.misc import yellowprint, darkprint
+
+btree = Branches()
 
 
 def compare(a, b):
-    print(colors.brightblack(f'compare("{a}", "{b}")'))
+    darkprint(f'compare({repr(a)}, {repr(b)})')
     if a == b:
         sys.exit(colors.red(f'trying to compare a branch to itself: {a}'))
-    if a not in btree.branches:
-        print(colors.yellow(f'"{a}" not in branches, searching...'))
-        return compare(btree.search(a), b)
-    if b not in btree.branches:
-        print(colors.yellow(f'"{b}" not in branches, searching...'))
-        return compare(a, btree.search(b))
+    if a not in btree:
+        yellowprint(f'"{a}" not in branches, searching...')
+        a = btree.search(a)
+    if b not in btree:
+        yellowprint(f'"{b}" not in branches, searching...')
+        b = btree.search(b)
+    
     repo = Repo()
     if repo.host == 'bitbucket':
         url = f"https://{repo.weburl}/branches/compare/{a}%0D{b}#diff"
@@ -34,15 +35,16 @@ def compare(a, b):
 @click.argument('a', required=False)
 @click.argument('b', required=False)
 def main(a, b):
-    print(colors.brightblack(f'main(a: {a}, b: {b})'))
+    darkprint(f'main(a: {a}, b: {b})')
     if a and b:
-        print(colors.brightblack(f'comparing a to b'))
+        darkprint(f'comparing a to b')
         return compare(a, b)
     if a:
-        print(colors.brightblack(f'comparing btree.current to a'))
+        darkprint(f'comparing btree.current to a')
         return compare(btree.current, a)
     
-    print(colors.brightblack(f'comparing btree.current to master'))
+    # not a and not b
+    darkprint(f'comparing btree.current to master')
     return compare(btree.current, 'master')
 
 

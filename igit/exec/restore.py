@@ -13,16 +13,17 @@ def main(index_or_substr):
     restoreall = False
     if not index_or_substr:
         os.system('git status -s')
-        key, answer = prompt.action('What to do?', 'restore all file', 'choose files', flowopts=('debug', 'quit'))
-        if answer == 'r':
+        key, answer = prompt.action('What to do?', 'restore all files', 'choose files', flowopts=('debug', 'quit'))
+        if key == 'r':
             restoreall = True
         elif answer == 'c':
             status = Status()
-            choice = prompt.choose('which?', *status.files, flowopts='quit', free_input=True)
-            try:
-                restore = status.files[choice]
-            except Exception as e:
-                restore = status.search(answer)
+            idx, choice = prompt.choose('which?', *status.files, flowopts='quit', free_input=True)
+            if idx is None:
+                # free input
+                restore = status.search(choice)
+            else:
+                restore = status.files[idx]
     
     # util.clip_copy(branch)
 

@@ -1,6 +1,4 @@
-import os
-from abc import ABC
-from typing import Union, Tuple, Any, overload
+from typing import Union, Tuple, overload
 
 from igit_debug.investigate import logonreturn, logreturn
 from more_termcolor import colors
@@ -9,11 +7,11 @@ from igit.abcs import prettyrepr
 from igit.prompt.item import MutableItem, FlowItem, LexicItem
 from igit.prompt.options import Options, NumOptions, LexicOptions
 from igit.util import misc
-from igit.util.misc import try_convert_to_idx, darkprint
+from igit.util.misc import darkprint, parse_slice, brightyellowprint
 
 
 def _input(s):
-    return misc.unquote(input(colors.brightwhite(s)))
+    return misc.clean(input(colors.brightwhite(s)))
 
 
 # (str, str) or (str, FlowItem)
@@ -42,31 +40,26 @@ class BasePrompt:
         self.options.set_kw_options(**kwargs)
         
         # *  Complex Prompt
-        
         dialog_string = self.dialog_string(question, free_input=free_input)
         # question = self.dialog_string(question, options, free_input=free_input)
         key, answer = self.get_answer(dialog_string, free_input=free_input)
-        darkprint(f'{repr(self)} key, answer: {key}, {answer}')
+        darkprint(f'{repr(self)} | key: {repr(key)}, answer: {repr(answer)}')
         # *  FlowItem Answer
-        try:
-            # raises ValueError if answer isn't FlowItem
-            # special_answer: FlowItem = FlowItem.from_full_name(answer)
-            flow_answer: FlowItem = FlowItem(answer)
-            darkprint(f'{repr(self)} flow_answer: {flow_answer}')
-            flow_answer.execute()
+        if isinstance(answer, FlowItem):
+            # flow_answer: FlowItem = FlowItem(answer)
+            answer.execute()
             
-            if flow_answer.DEBUG:
-                # debugger already started and finished in flow_answer.execute() (user 'continue'd here)
+            if answer.DEBUG:
+                # debugger had already started and had finished in answer.execute() (user 'continue'd here)
                 self.answer = self.get_answer(dialog_string)
-            elif flow_answer.CONTINUE:
-                self.answer: Tuple[str, FlowItem] = key, flow_answer
+            elif answer.CONTINUE:
+                self.answer: Tuple[str, FlowItem] = key, answer
             else:
                 raise NotImplementedError
-        except ValueError as e:
+        else:
             # *  DIDN'T answer any flow
             
-            if hasattr(answer, "is_yes_or_no") and answer.is_yes_or_no:
-                # prompt.confirm('Coffee?', 'yes', 'no', 'quit') → didn't answer 'quit' → boolean self.answer
+            if isinstance(answer, MutableItem) and answer.is_yes_or_no:
                 darkprint(f'{repr(self)} no flow chosen, answer is yes / no. key: {repr(key)}, answer: {repr(answer)}, options: {self.options}')
                 self.answer: bool = key.lower() in ('y', 'yes')
             else:
@@ -93,11 +86,12 @@ class BasePrompt:
         return dialog_string
     
     @overload
-    def get_answer(self, dialog_string: str, *, free_input=False) -> AnswerTuple:
+    def get_answer(self, dialog_string: str, *, free_input=False) -> Tuple[str, Union[MutableItem, LexicItem, FlowItem]]:
         ...
     
     @overload
     def get_answer(self, dialog_string: str, *, free_input=True) -> Tuple[None, str]:
+        """`free_input = True`"""
         ...
     
     @logreturn
@@ -107,12 +101,11 @@ class BasePrompt:
         if ans_key not in items:
             if ans_key and free_input:
                 # * Free input
-                print(colors.white(f"Returning free input: (None, '{ans_key}')"))
                 return None, ans_key
             else:
                 # TODO: this doesnt account for free_input = True, but no ans_key ('')
                 while ans_key not in items:
-                    print(colors.brightyellow(f"Unknown option: '{ans_key}'"))
+                    brightyellowprint(f"Unknown option: '{ans_key}'")
                     ans_key = _input(dialog_string)
         ans_value = items[ans_key]
         # this is commented out because BasePrompt init needs to check if answer.is_yes_or_no
@@ -155,12 +148,21 @@ class Action(BasePrompt):
 
 
 class Choice(BasePrompt):
-    options: NumOptions
-    answer: Tuple[str, MutableItem]
+    """If `free_input=True`, `answer` may be (None, str) or (None, slice) (if input is e.g. "2:5").
     
-    def get_answer(self, question: str, *, free_input=False) -> Tuple[Union[None, str, int], Any]:
+    Otherwise, if a numeric choice is made, `answer` is (slice, MutableItem).
+    
+    If a lexic choice is made, `answer` is (key: str, LexicItem)."""
+    options: NumOptions
+    answer: Union[Tuple[slice, MutableItem], Tuple[str, LexicItem], Tuple[None, str], Tuple[None, slice]]
+    
+    def get_answer(self, question: str, *, free_input=False) -> Tuple[Union[None, str, slice], Union[MutableItem, LexicItem, str, slice]]:
         ans_key, ans_value = super().get_answer(question, free_input=free_input)
-        ans_key = try_convert_to_idx(ans_key)
+        if ans_key is None:
+            # free input
+            ans_value = parse_slice(ans_value)
+        else:
+            ans_key = parse_slice(ans_key)
         return ans_key, ans_value
     
     def __init__(self, question: str, *options: str, **kwargs):
@@ -180,8 +182,39 @@ def generic(prompt: str, *options: str, **kwargs: Union[str, tuple, bool]):
     return LexicPrompt(prompt, *options, **kwargs).answer
 
 
-def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[str, MutableItem]:
-    """Presents `options` by *index*. Expects at least one option"""
+@overload
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[None, slice]:
+    """`free_input = True` and user input was e.g. "2:5" thus converted successfully to slice."""
+    ...
+
+
+@overload
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[None, str]:
+    """`free_input = True` and user input was some string."""
+    ...
+
+
+@overload
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[slice, MutableItem]:
+    """User chose a numeric selection that was converted to slice."""
+    ...
+
+
+@overload
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]) -> Tuple[str, LexicItem]:
+    """User chose a lexic selection."""
+    ...
+
+
+def choose(prompt, *options: str, **kwargs: Union[str, tuple, bool]):
+    """Presents `options` by *index*. Expects at least one option.
+    
+    If `free_input=True`, return type may be (None, str) or (None, slice) (if input is e.g. "2:5").
+    
+    Otherwise, if a numeric choice is made, return type is (idx: int, MutableItem).
+    
+    If a lexic choice is made, return type is (key: str, LexicItem).
+    """
     
     answer = Choice(prompt, *options, **kwargs).answer
     return answer
@@ -216,26 +249,5 @@ def action(question, *actions, **kwargs: Union[str, tuple, bool]) -> Tuple[str, 
         If a str, it has to be one of the special options above.
         If tuple, has to contain only special options above.
     """
-    # options = Options(*actions)
-    # # *  actions
-    # if not options:
-    #     # similar check in Choice init, because only action Prompt requires at least 1 option
-    #     raise TypeError(f'At least one action is required')
-    # if options.any_item(lambda o: re.fullmatch(YES_OR_NO, o)):
-    #     raise ValueError(f"Actions cannot include a 'yes' or 'no'. Received: {repr(actions)}")
-    #
-    # # *  special options
-    # if 'flowopts' in kwargs:
-    #     options.set_flow_opts(kwargs.pop('flowopts'))
-    #
-    #     # * free_input
-    # try:
-    #     free_input = kwargs.pop('free_input')
-    # except KeyError:
-    #     free_input = False
-    # # *  keyword-actions
-    # options.set_kw_options(**kwargs)
-    #
-    # print(color.white(f'action() | actions: {repr(actions)}, options: {repr(options)}'))
-    # return Prompt(question, options, free_input=free_input).answer
+    
     return Action(question, *actions, **kwargs).answer

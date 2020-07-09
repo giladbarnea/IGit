@@ -3,7 +3,7 @@ import sys
 
 from igit import git
 from igit import prompt
-from igit.branch import BranchTree
+from igit.branches import Branches
 from igit.status import Status
 from igit.util import shell
 from more_termcolor import colors
@@ -13,7 +13,7 @@ def main():
     status = Status()
     if status:
         sys.exit(colors.red('Uncommitted changes, aborting'))
-    btree = BranchTree()
+    btree = Branches()
     versionbranch = btree.version
     if not versionbranch:
         print(colors.yellow("Couldn't find version branch"))

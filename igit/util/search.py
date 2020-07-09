@@ -1,16 +1,19 @@
 import re
 from collections import defaultdict
-from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic
+from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic, Collection
 
 from fuzzysearch import find_near_matches
+from igit.util import regex
+from igit_debug.investigate import loginout
+from igit_debug.loggr import Loggr
 from more_termcolor import colors
 
 from igit import prompt
-from igit.prompt.item import FlowItem
-from igit.util.misc import darkprint
-from ipdb import set_trace
-import inspect
+from igit.prompt.item import FlowItem, Flow
+from igit.util.misc import darkprint, brightyellowprint
+from contextlib import suppress
 
+logger = Loggr(__name__)
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
 T = TypeVar('T')
 
@@ -18,7 +21,7 @@ T = TypeVar('T')
 class Matches(Generic[T]):
     def __init__(self, *, maxsize):
         self.count = 0
-        self.matches: Dict[float, List[T]] = defaultdict(list)
+        self.matches: Dict[float, Collection[T]] = defaultdict(list)
         self.worst_score = 0
         self.best_score = 999
         self._maxsize = maxsize
@@ -73,19 +76,33 @@ class Matches(Generic[T]):
         
         # score is worst than worst: don't let in
     
-    def best(self) -> List[T]:
+    def best(self) -> Collection[T]:
+        if not self.matches:
+            logger.debug(f'no self.matches → returning None')
+            return None
         ret = self.matches[self.best_score]
         # print(paint.faint(f'Matches.best() → {len(ret)} matches with score: {self.best_score}'))
         return ret
 
 
-def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
+@loginout
+def nearest(keyword: str, collection: Collection[T], cutoff=2) -> T:
     matches = fuzzy(keyword, collection, cutoff)
+    
+    if matches is None:
+        logger.debug(f'matches is None → returning None')
+        return None
+    
     # print(repr(matches))
-    return matches.best()[0]
+    bestmatches = matches.best()
+    if not bestmatches:
+        logger.debug(f'no matches.best() → returning None')
+        return None
+    best = bestmatches[0]
+    return best
 
 
-def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
+def fuzzy(keyword: str, collection: Collection[T], cutoff=2) -> Optional[Matches[T]]:
     if not collection or not any(item for item in collection):
         raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
@@ -136,19 +153,20 @@ def fuzzy(keyword: str, collection: List[T], cutoff=2) -> Matches[T]:
         # * good (below cutoff)
         near_matches.append(item, score)
     if not near_matches and not far_matches:
-        print(colors.yellow(f'fuzzy() no near_matches nor far_matches! collection: {collection}'))
+        brightyellowprint(f'fuzzy() no near_matches nor far_matches! collection: {collection}')
+        return None
     if near_matches:
         return near_matches
     darkprint(f'fuzzy() → far_matches')
     return far_matches
 
 
-def _choose_from_many(collection, *promptopts) -> Optional[str]:
+def _choose_from_many(collection, *promptargs, **promptkwargs) -> Optional[str]:
     if collection:
         # *  many
         if len(collection) > 1:
-            i, choice = prompt.choose(f"found {len(collection)} choices, please choose:", *collection, flowopts=True)
-            if choice == FlowItem.CONTINUE:
+            i, choice = prompt.choose(f"found {len(collection)} choices, please choose:", *collection, *promptargs, flowopts=True, **promptkwargs)
+            if choice == Flow.CONTINUE:
                 return None
             return collection[i]
         # *  single
@@ -158,13 +176,21 @@ def _choose_from_many(collection, *promptopts) -> Optional[str]:
     return None
 
 
+def search_and_prompt(keyword: str, collection: Collection[str], criterion: SearchCriteria = 'substring') -> Optional[str]:
+    """Prompts to choose from each of the three `maybes` sets, and returns the choice once made.
+    Returns None if user "continues" until all options are exhausted"""
+    for maybes, is_last in iter_maybes(keyword, collection, criterion=criterion):
+        choice = _choose_from_many(maybes)
+        if choice:
+            return choice
+    return None
+
+
 def _create_is_maybe_predicate(criterion: SearchCriteria) -> Callable[[str, str], bool]:
     if criterion == 'substring':
         is_maybe = str.__contains__
-        # is_maybe = lambda k, item: k in item
     elif criterion == 'equals':
         is_maybe = str.__eq__
-        # is_maybe = lambda k, item: k == item
     elif criterion == 'startswith':
         is_maybe = str.startswith
     elif criterion == 'endswith':
@@ -175,33 +201,32 @@ def _create_is_maybe_predicate(criterion: SearchCriteria) -> Callable[[str, str]
     return is_maybe
 
 
-def search_and_prompt(keyword: str, collection: List[str], criterion: SearchCriteria = 'substring') -> Optional[str]:
-    """Prompts to choose from each `maybes` set and returns the choice once made"""
-    for maybes, is_last in iter_maybes(keyword, collection, criterion=criterion):
-        choice = _choose_from_many(maybes)
-        if choice:
-            return choice
-    return None
-
-
-def iter_maybes(keyword: str, collection: List[T], *extra_options, criterion: SearchCriteria = 'substring') -> Generator[Tuple[List[T], bool], None, None]:
-    """Doesn't prompt of any kind. Yields a `[...], is_last` tuple."""
+def iter_maybes(keyword: str, collection: Collection[T], *extra_options, criterion: SearchCriteria = 'substring') -> Generator[Tuple[List[T], bool], None, None]:
+    """Doesn't prompt. Yields three `[matches...], is_last` tuples.
+    1st: str method by `criterion`
+    2nd: re.search ignoring word separators
+    3rd: fuzzy search"""
     is_maybe = _create_is_maybe_predicate(criterion)
     
-    # print(paint.faint(f"trying to get '{keyword}' by '{criterion}'..."))
     maybes = [item for item in collection if is_maybe(item, keyword)]
     yield maybes, False
     
-    # print(paint.faint(f"ignoring case and word separators everywhere (pseudo-fuzzy)..."))
-    regexp = re.sub(r'[-_./ ]', r'[-_./ ]?', keyword)
-    new_maybes = [item for item in collection if re.search(regexp, item, re.IGNORECASE)]
-    if new_maybes == maybes:
-        pass
-        # print(paint.faint(f"pseudo-fuzzy got no new results"))
-    else:
-        yield maybes, False
+    regexp = None
+    try:
+        regexp_str = re.sub(r'[-_./ ]', r'[-_./ ]?', keyword)
+        regexp = re.compile(regexp_str, re.IGNORECASE)
+    except re.error:
+        # compilation failed, probaby keyword is itself a regexp
+        if regex.has_regex(keyword):
+            regexp = re.compile(keyword, re.IGNORECASE)
     
-    # print(paint.faint(f"going full fuzzy..."))
+    if regexp is not None:
+        new_maybes = []
+        for item in collection:
+            if regexp.search(item) and item not in maybes:
+                new_maybes.append(item)
+        if new_maybes and new_maybes != maybes:
+            yield new_maybes, False
+    
     near_matches = fuzzy(keyword, collection)
-    # print(paint.faint(repr(near_matches)))
     yield near_matches.best(), True

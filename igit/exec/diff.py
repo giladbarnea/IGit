@@ -3,15 +3,15 @@ import sys
 from typing import Tuple
 
 import click
+from more_termcolor.colors import italic
 
-from igit.ignore import Gitignore
+from igit.branches import Branches
+from igit.commits import Commits
 from igit.status import Status
 from igit.util import shell, regex, misc
 from igit.util.clickextensions import unrequired_opt
-from igit.util.misc import darkprint, brightyellowprint
-from igit.util.path import ExPath
-from more_termcolor import colors
-from more_termcolor.colors import italic
+from igit.util.misc import darkprint, redprint, brightwhiteprint
+from igit.util.search import search_and_prompt
 
 tabchar = '\t'
 
@@ -23,64 +23,83 @@ tabchar = '\t'
 @click.argument('items', nargs=-1, required=False)
 @unrequired_opt('--exclude', '-e')
 def main(items: Tuple[str], exclude):
-    # git diff origin/master -- . :(exclude)*.csv :(exclude)*.ipynb :(exclude)*.sql :!report_validators/*
-    # or ':!*.js' ':!*.d.ts' ':!*.js.map'
     # TODO: option to view in web like comparebranch
     exclude_exts = []
     if exclude:
-        for ex in exclude.split(' '):
-            if ExPath(ex).exists():
-                exclude_exts.append(f'":!{ex}"')
-            else:
-                exclude_exts.append(f'":!*.{ex}"')
+        for ex in map(misc.clean, exclude.split(' ')):
+            exclude_exts.append(misc.quote(f':!{ex}'))
     
     cmd = 'git diff --color-moved=zebra --find-copies-harder --ignore-blank-lines --ignore-cr-at-eol --ignore-space-at-eol --ignore-space-change --ignore-all-space '
     darkprint(f'diff.py main(items): {items}')
     if not items:
         # TODO: exclude
         shell.run(cmd, stdout=sys.stdout)
-    # first, *rest = items
-    # if first in BranchTree():
-    #     diff_files = [line.rpartition('\t')[2] for line in shell.runquiet(f"git diff --numstat {first}").splitlines()]
-    # else:
-    #     diff_files = [line.rpartition('\t')[2] for line in shell.runquiet(f"git diff --numstat").splitlines()]
     
+    btree = Branches()
+    ctree = Commits()
     formatted = []
     # if exclude_exts:
     
     gitignore = None
     status = Status()
     
-    root = None
+    any_sha = False
+    diff_files = set()
     
-    for item in items:
-        file = status.search(item)
-        if not file:
-            brightyellowprint(f'{item} is not in status, skipping')
-            continue
-        stripped = misc.unquote(file.strip())
-        formatted.append(f'"{stripped}"')
-        darkprint(f'appended: {repr(stripped)}')
-        # if regex.has_adv_regex(item):
-        #     # for diff_file in diff_files:
-        #     #     if re.match(item, diff_file):
-        #     #         stripped = diff_file.strip()
-        #     #         formatted.append(f'"{stripped}"')
-        #     # continue
-        #
-        #     # if gitignore is None:
-        #     #     gitignore = Gitignore()
-        #     # if root is None:
-        #     #     root = ExPath('.')
-        #
-        #     # for match in root.regex(item, lambda x: not gitignore.is_ignored(x)):
-        #     #     stripped = match.strip()
-        #     #     formatted.append(f'"{stripped}"')
-        #     #     darkprint(f'appended: {repr(stripped)}')
+    for i, item in enumerate(map(misc.clean, items)):
+        if regex.SHA_RE.fullmatch(item):
+            # e.g. 'f5905f1'
+            any_sha = True
+            if i > 1:
+                redprint(f'SHA1 items, if any, must be placed at the most in the first 2 arg slots')
+                return
+            if item in ctree:
+                if i == 1 and formatted[0] not in ctree:
+                    redprint(f'When specifying two SHA1 args, both must belong to the same tree. 0th arg doesnt belong to ctree, 1st does')
+                    return
+                formatted.append(item)
+                continue
+            if item in btree:
+                if i == 1 and formatted[0] not in btree:
+                    redprint(f'When specifying two SHA1 args, both must belong to the same tree. 0th arg doesnt belong to btree, 1st does')
+                    return
+                formatted.append(item)
+                continue
+            redprint(f'item is SHA1 but not in commits nor branches. item: {repr(item)}')
+            return
+        else:
+            if any_sha:
+                # all SHA items have already been appended, and current item is not a SHA
+                numstat_cmd = f'git diff --numstat {" ".join(items[:i])}'
+            else:
+                # no SHA items at all, this is the first item
+                numstat_cmd = f'git diff --numstat'
+            filestats = shell.runquiet(numstat_cmd).splitlines()
+            diff_files = set(line.rpartition('	')[2] for line in filestats)
+        
+        # TODO (continue here):
+        #  gpdy SHA SHA REGEX -e REGEX
+        #  make -e filter out results
+        
+        if item in diff_files:
+            with_quotes = misc.quote(item)
+            formatted.append(with_quotes)
+            darkprint(f'appended: {with_quotes}')
+        else:
+            brightwhiteprint(f'{item} is not in diff_files, searching within diff_files...')
+            choice = search_and_prompt(item, diff_files)
+            if choice:
+                with_quotes = misc.quote(choice)
+                formatted.append(with_quotes)
+                darkprint(f'appended: {with_quotes}')
+        
+        # file = status.search(item, quiet=False)
+        # if not file:
+        #     brightyellowprint(f'{item} is not in status, skipping')
         #     continue
-        #
-        # stripped = misc.unquote(item.strip())
-        # formatted.append(f'"{stripped}"')
+        # stripped = misc.unquote(file.strip())
+        # formatted.append(misc.quote(stripped))
+        # darkprint(f'appended: {repr(stripped)}')
     
     joined = " ".join(formatted)
     cmd += f'{joined} '

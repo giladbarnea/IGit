@@ -1,14 +1,22 @@
+import functools
+import inspect
 import os
 
 import re
+from typing import Union, overload
 
 from more_termcolor import cprint
+import builtins
 
 
 def clip_copy(text: str):
     stripped = text.strip()
     assert '\n' not in stripped
     os.system(f'echo {stripped} | xclip -r -selection clipboard')
+
+
+def clean(string: str) -> str:
+    return unquote(string.strip())
 
 
 def unquote(string) -> str:
@@ -39,10 +47,10 @@ def trim_at(string: str, idx: int) -> str:
 
 
 def is_pycharm():
-    is_pycharm = 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
-    if is_pycharm:
+    ispycharm = 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
+    if ispycharm:
         print('pycharm!')
-    return is_pycharm
+    return ispycharm
 
 
 def getsecret(label: str) -> str:
@@ -55,32 +63,120 @@ def getsecret(label: str) -> str:
             return item.get_secret().decode()
 
 
-def try_convert_to_slice(val: str) -> slice:
-    """Returns either slice or as-is if conversion fails"""
-    try:
+def return_none_if_errors(*exc):
+    """If no `exc` specified, returns None on any exception.
+    >>> @return_none_if_errors(ValueError)
+    ... def raises(exc):
+    ...     raise exc()
+    >>> raises(ValueError) is None
+    True
+    >>> raises(TypeError)
+    Traceback (most recent call last):
+        ...
+    TypeError
+    >>> @return_none_if_errors
+    ... def raises(exc):
+    ...     raise exc()
+    >>> raises(OverflowError) is None
+    True
+    """
+    
+    def wrap(fn):
+        @functools.wraps(fn)
+        def decorator(*fnargs, **fnkwargs):
+            
+            try:
+                return fn(*fnargs, **fnkwargs)
+            except exc:
+                return None
+        
+        return decorator
+    
+    if not exc:
+        # @return_none_if_errors()    (parens but no args)
+        exc = Exception
+    elif inspect.isfunction(exc[0]):
+        # @return_none_if_errors    (naked)
+        _fn = exc[0]
+        exc = Exception
+        return wrap(_fn)
+    
+    # @return_none_if_errors(ValueError)
+    return wrap
+
+
+@return_none_if_errors(ValueError)
+def parse_slice(val: Union[str, int, slice]) -> slice:
+    """Handles int, str ("1"), str ("1:3") and slice.
+    Returns None if conversion fails.
+    
+    string:
+    
+    >>> l = [0,1,2]
+    >>> l[parse_slice("0")]
+    [0]
+    >>> l[parse_slice("0:2")]
+    [0, 1]
+    >>> parse_slice("foo") is None
+    True
+    
+    int:
+    
+    >>> l[parse_slice(0)]
+    [0]
+    
+    slice:
+    
+    >>> l[parse_slice(slice(0,2))]
+    [0, 1]
+    """
+    
+    def _to_slice(_val) -> slice:
+        if isinstance(_val, slice):
+            return _val
+        _stop = int(_val) + 1
+        return slice(_stop)
+    
+    if isinstance(val, str):
         val = val.strip()
-        if val.isdigit():
-            stop = int(val) + 1
-            return slice(stop)
         if ':' in val:
             start, _, stop = val.partition(':')
             return slice(int(start), int(stop))
-        return val
-    except AttributeError as e:  # AttributeError: 'slice' object has no attribute 'strip'
-        return val
+    return _to_slice(val)
 
 
-def try_convert_to_idx(val: str) -> int:
-    """Returns either int or as-is if conversion fails"""
-    try:
+@return_none_if_errors(ValueError)
+def parse_idx(val: Union[str, int, slice]) -> int:
+    """Handles int, str ("1"), and slice.
+    Returns None if conversion fails.
+    
+    string:
+
+    >>> l = [0,1,2]
+    >>> l[parse_idx("0")]
+    0
+    >>> parse_idx("0:2") is None and parse_idx("foo") is None
+    True
+
+    int:
+
+    >>> l[parse_idx(0)]
+    0
+
+    slice:
+
+    >>> l[parse_idx(slice(0,2))]
+    0
+    """
+    
+    def _to_idx(_val) -> int:
+        if isinstance(_val, slice):
+            return _val.start
+        return int(_val)
+    
+    if isinstance(val, str):
         val = val.strip()
-        if val.isdigit():
-            return int(val)
-        if ':' in val:
-            raise ValueError(f"':' in val: {val}. Use try_convert_to_slice()")
-        return val
-    except AttributeError as e:
-        return val
+    return _to_idx(val)
 
 
 def darkprint(string):
@@ -89,6 +185,10 @@ def darkprint(string):
 
 def greenprint(string):
     cprint(string, 'green')
+
+
+def redprint(string):
+    cprint(string, 'red')
 
 
 def yellowprint(string):
@@ -101,3 +201,7 @@ def brightyellowprint(string):
 
 def brightredprint(string):
     cprint(string, 'bright red')
+
+
+def brightwhiteprint(string):
+    cprint(string, 'bright white')

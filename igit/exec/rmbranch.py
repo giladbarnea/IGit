@@ -6,15 +6,15 @@ import click
 from igit import prompt
 from igit.util import shell
 
-from igit.branch import BranchTree
+from igit.branches import Branches
 from more_termcolor import colors
+
 
 @click.command()
 @click.argument('name')
 def main(name):
-    btree = BranchTree()
-    branches = btree.branchnames
-    if name not in branches:
+    btree = Branches()
+    if name not in btree:
         print(colors.yellow(f"didn't find {name} in branches"))
         name = btree.search(name)
     if name == btree.current:

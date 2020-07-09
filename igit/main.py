@@ -6,8 +6,8 @@ from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 import os
 
-from igit.branch import BranchTree
-from igit.commit import CommitTree
+from igit.branches import Branches
+from igit.commits import Commits
 from igit.repo import Repo
 
 
@@ -15,8 +15,8 @@ def bottom_toolbar():
     return btree.current
 
 
-btree = BranchTree()
-ctree = CommitTree()
+btree = Branches()
+ctree = Commits()
 repo = Repo()
 
 uname = os.getlogin()

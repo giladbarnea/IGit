@@ -66,9 +66,9 @@ if should_prompt:
 # tarball:
 # dependency_links = ['https://git@github.com/giladbarnea/more_termcolor.git/archive/1.0.0.tar.gz#egg=more_termcolor-1.0.0']
 # print(f'dependency_links: ', '\n', "\n\t".join(dependency_links))
-setup(name='IGit',
-      version='1.0.4',
-      description='Like IPython, for Git',
+setup(name='igit',
+      version='1.0.5',
+      description='Interactive Git shell, with magics, autocompletion, fuzzy lookups and intelligent prompts (WIP)',
       author='Gilad Barnea',
       author_email='giladbrn@gmail.com',
 

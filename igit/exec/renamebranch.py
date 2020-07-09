@@ -8,7 +8,7 @@ from igit.status import Status
 from more_termcolor import colors
 from igit.util import shell
 
-from igit.branch import BranchTree
+from igit.branches import Branches
 
 
 @click.command()
@@ -18,11 +18,10 @@ def main(oldname, newname):
     status = Status()
     if status:
         sys.exit(colors.red('Uncommitted changes, aborting'))
-    btree = BranchTree()
-    branches = btree.branchnames
-    if newname in branches:
+    btree = Branches()
+    if newname in btree:
         sys.exit(colors.red(f'"{newname}" already exists'))
-    if oldname not in branches:
+    if oldname not in btree:
         os.system('git branch -l')
         sys.exit(colors.red(f'"{oldname}" doesnt exist'))
     

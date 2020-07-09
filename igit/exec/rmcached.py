@@ -6,9 +6,9 @@ from igit import prompt, git
 from igit.ignore import Gitignore
 from igit.status import Status
 from igit.util import shell
-from igit.util.misc import unquote, try_convert_to_idx
+from igit.util.misc import unquote
 from igit.util.path import ExPath
-from more_termcolor import colors, colored
+from more_termcolor import colors
 
 
 @click.command()
@@ -26,9 +26,7 @@ def main(paths):
     for p in paths:
         try:
             # * maybe index
-            converted = try_convert_to_idx(p)
-            print(colors.dark(f'p: {p}, converted: {converted}'))
-            p = status[converted]
+            p = status[p]
         except TypeError as e:
             # * not index, just str
             p = ExPath(unquote(p))

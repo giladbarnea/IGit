@@ -4,7 +4,7 @@ from typing import Union, NoReturn, Callable, Any, Iterable
 from more_termcolor import colors
 
 from igit.debug.err import DeveloperError
-from igit.prompt.item import MutableItem, Items
+from igit.prompt.item import MutableItem, Items, Flow
 from igit.prompt.item import NumItems, LexicItems, KeywordItems
 from igit.prompt.util import has_duplicates
 from igit.util.misc import darkprint
@@ -41,18 +41,18 @@ class Options(ABC):
         Handles passing different types of flowopts (single string, tuple of strings, or boolean), and returns a FlowItem tuple."""
         darkprint(f'{self.__class__.__qualname__}.set_flow_opts(flowopts={repr(flowopts)})')
         if flowopts is True:
-            flowopts = tuple(FlowItem.__members__.values())
+            flowitems = tuple(map(FlowItem, Flow.__members__.values()))
         elif isinstance(flowopts, str):  # 'quit'
             # flowopts = (FlowItem.from_full_name(flowopts),)
-            flowopts = (FlowItem(flowopts),)
+            flowitems = (FlowItem(flowopts),)
         else:
             # flowopts = tuple(map(FlowItem.from_full_name, flowopts))
-            flowopts = tuple(map(FlowItem, flowopts))
-            if has_duplicates(flowopts):
-                raise ValueError(f"{repr(self)}\nset_special_options(flowopts) | duplicate flowopts: {repr(flowopts)}")
+            flowitems = tuple(map(FlowItem, flowopts))
+            if has_duplicates(flowitems):
+                raise ValueError(f"{repr(self)}\nset_flow_opts(flowopts) | duplicate flowitems: {repr(flowitems)}")
         
-        for flowopt in flowopts:
-            self.items.store(flowopt)
+        for flowitem in flowitems:
+            self.items.store(flowitem)
             # if flowopt.value in self.items:
             #     raise ValueError(f'{repr(self)}\nset_special_options() | flowopt.value ({repr(flowopt.value)}) already exists in self.\nflowopt: {repr(flowopt)}.\nflowopts: {repr(flowopts)}')
             # self.items[flowopt.value] = flowopt.name

@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import TypeVar, Dict, Generator, Tuple, Any, Type, NoReturn
 
+from igit_debug.loggr import Loggr
 from more_termcolor import cprint, colors
 
 from igit.abcs import prettyrepr
@@ -11,6 +12,8 @@ from igit.util.misc import darkprint
 from igit.util.regex import YES_OR_NO
 
 T = TypeVar('T')
+
+logger = Loggr(__name__)
 
 
 # noinspection PyUnresolvedReferences
@@ -157,7 +160,7 @@ class LexicItem(MutableItem):
             yield new_identifiers
         raise StopIteration(f'mutate_identifier() exhausted all options: {repr(self)}')
 
-    
+
 class FlowItem(Item):
     value: Flow
     
@@ -250,16 +253,16 @@ class Items(Dict[str, MutableItem]):
     
     def __new__(cls: Type['Items'], *args: Any, **kwargs: Any) -> 'Items':
         # TODO: apply items_gen here (scratch_MyDict.py), so can init and behave like normal dict (KeywordItems())
-        darkprint(f'{cls.__qualname__}.__new__(*args, **kwargs): {args}, {kwargs}')
+        # darkprint(f'{cls.__qualname__}.__new__(*args, **kwargs): {args}, {kwargs}')
         return super().__new__(cls, *args, **kwargs)
     
     def __init__(self, items):
         super().__init__()
-        darkprint(f'{self.__class__.__qualname__}.__init__(items): {items}')
+        logger.debug('items:', items)
         for value, identifier in self.items_gen(items):
             item = self._itemcls(value, identifier)
             self.store(item)
-            darkprint(f'\titem: {item}')
+            # logger.debug(f'\titem: {item}')
     
     def __repr__(self):
         string = '{\n\t'
@@ -272,7 +275,6 @@ class Items(Dict[str, MutableItem]):
         ...
     
     def store(self, item: MutableItem):
-        
         if item.identifier in self:
             try:
                 self.mutate_until_unique(item)

@@ -1,55 +1,33 @@
 import re
-from typing import List, Dict
+from typing import Dict
 
 from igit_debug import ExcHandler
-from igit.util.search import search_and_prompt
 
-from igit.util import shell, cachedprop
-from more_termcolor import colors
+from igit._hybrids import HybridDict
+from igit.util import cachedprop, shell
 
 
-class BranchTree:
-    """Get branch sha:
+class Branches(HybridDict):
+    """{ 'master' : <SHA1> }
+    Get branch sha:
     git ls-remote --heads origin | grep dragon
     
     Get branch date:
     git log | grep -A 5 d08c5391b1fd8e249daad1ef9db4da91f70c8b9"""
-    _current = ''
-    _branches = dict()
-    _branchnames = []
-    _branchhashes = []
-    _fetched = False
-    _version = ''
-    
-    def __contains__(self, branch):
-        return branch in self.branches
     
     @cachedprop
     def current(self) -> str:
         return shell.runquiet('git branch --show-current')
     
-    @cachedprop
-    def branches(self) -> dict:
-        """{'master': <SHA1>}"""
-        if not self._fetched:
-            shell.runquiet('git fetch --all')
-            self._fetched = True
+    def _populate_self(self):
+        return self.branches()
+    
+    @HybridDict.ensurefetched
+    def branches(self) -> Dict[str, str]:
         lines = shell.runquiet('git ls-remote --heads origin').splitlines()
-        return dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines)
-    
-    @cachedprop
-    def branchnames(self) -> List[str]:
-        return list(self.branches.keys())
-    
-    @cachedprop
-    def branchhashes(self) -> List[str]:
-        return list(self.branches.values())
-    
-    def search(self, keyword: str) -> str:
-        # TODO: option to get branch date if ambiguous etc
-        choice = search_and_prompt(keyword, self.branchnames, criterion='substring')
-        print(colors.dark(f'BranchTree.search("{keyword}") → "{choice}"'))
-        return choice
+        self.clear()
+        self.update(dict(reversed(re.match(r'(\w*)\srefs/heads/(.*)', line).groups()) for line in lines))
+        return self
     
     @property
     def version(self) -> str:
@@ -73,7 +51,7 @@ class BranchTree:
                     if not max_vernum or next(iter(max_vernum)) < vernum:
                         max_vernum = {vernum: i}
                 except Exception as e:
-                    print('BranchTree.version()', ExcHandler(e).summary())
+                    print('Branches.version()', ExcHandler(e).summary())
                     continue
             if not max_vernum:
                 return verbranches[-1]

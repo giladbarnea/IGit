@@ -4,7 +4,7 @@ import webbrowser
 import click
 
 from igit import prompt
-from igit.branch import BranchTree
+from igit.branches import Branches
 from igit.repo import Repo
 
 
@@ -21,13 +21,13 @@ def url_subdomain(repo):
 @click.option('--branch', '-b', required=False)
 def main(branch):
     repo = Repo()
-    btree = BranchTree()
+    btree = Branches()
     subdomain = url_subdomain(repo)
     url = f'https://{repo.weburl}/{subdomain}'
     if branch:
         # res = requests.get(f'{url}/{branch}')
         # if not res.ok:
-        if branch not in btree.branchnames:
+        if branch not in btree:
             if prompt.confirm(f'"{branch}" not in branches, search?', flowopts=True):
                 branch = btree.search(branch)
             else:

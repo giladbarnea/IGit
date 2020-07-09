@@ -9,15 +9,14 @@ from igit import prompt
 from igit.status import Status
 from igit.util import shell
 
-from igit.branch import BranchTree
+from igit.branches import Branches
 
 
 @click.command()
 @click.argument('name')
 def main(name):
-    btree = BranchTree()
-    branches = btree.branchnames
-    if name in branches:
+    btree = Branches()
+    if name in btree:
         if not prompt.confirm(f'"{name}" already exists, check it out?'):
             sys.exit()
         shell.run(f'git checkout {name}')

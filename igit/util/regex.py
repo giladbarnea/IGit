@@ -24,6 +24,9 @@ GLOB_CHAR = '?*![]'  # TODO: detect "[a-z]" but dont false positive on mere "-"
 
 REGEX_CHAR = GLOB_CHAR + ADV_REGEX_CHAR
 
+# fullmatch('f5905f1') or fullmatch('f5905f1e4ab6bd82fb6644ca4cc2799a59ee725d')
+SHA_RE = re.compile(r'([a-f\d]{7}|[a-f\d]{40})')
+
 
 def is_only_regex(val: str):
     r"""

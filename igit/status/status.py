@@ -2,7 +2,9 @@ import os
 
 from typing import Tuple, List, Dict
 
-from igit.util.misc import try_convert_to_slice, darkprint
+from igit_debug.investigate import loginout
+
+from igit.util.misc import parse_slice, darkprint
 from igit.util.path import ExPath, ExPathOrStr, has_file_suffix
 from igit.util import shell, cachedprop, search, regex
 from igit import prompt
@@ -13,15 +15,16 @@ import re
 
 class Status:
     _status = ''
-    _files = []
-    _file_status_map = dict()
+    _files: List[ExPath] = []
+    _file_status_map: Dict[ExPath, str] = dict()
     
     def __getitem__(self, item) -> List[ExPathOrStr]:
         # TODO: account for deleted
+        slyce = parse_slice(item)
         try:
-            slyce = try_convert_to_slice(item)
             return self.files[slyce]
-        except ValueError as e:  # not an index
+        except ValueError as e:
+            # not an index
             return [self.search(item)]
     
     def __contains__(self, file):
@@ -72,9 +75,6 @@ class Status:
             else:
                 knownfiles.append(file)
         return [*newfiles, *knownfiles]
-        # if not self._files:
-        #     self._files = [*newfiles, *knownfiles]
-        # return self._files
     
     def search(self, keyword: str, quiet=True) -> ExPath:
         path = ExPath(keyword)
@@ -86,22 +86,11 @@ class Status:
             files = self.files
         else:
             files = [f.with_suffix('') for f in self.files]
-        """names = [f.name for f in files]
-        ## Basenames
-        print(termcolor.yellow(f"looking in basenames {'with' if has_suffix else 'without'} suffixes..."))
-        try:
-            choice = git.search(keyword, names, criterion='equals')
-            if choice:
-                return choice
-        except ValueError as e:
-            if 'duplicate' not in e.args[0].lower():
-                raise e
-            # if duplicate options, continue to search in full paths"""
         
         if has_regex:
-            for f in files:
-                if re.search(keyword, f):
-                    return ExPath(f)
+            for expath in files:
+                if re.search(keyword, str(expath)):
+                    return expath
         if has_slash:
             darkprint(f"looking for the nearest match among status paths for: '{keyword}'")
             return ExPath(search.nearest(keyword, files))
@@ -114,9 +103,9 @@ class Status:
                     return ret
         if quiet:
             return None
-        darkprint("didn't find a matching part, calling search_and_prompt(criterion='equals')...")
-        choice = search_and_prompt(keyword, [str(f) for f in files], criterion='equals')
+        darkprint(f"didn't find a matching part, calling search_and_prompt()...")
+        choice = search_and_prompt(keyword, [str(f) for f in files], criterion='substring')
         if choice:
-            return choice
-        print(colors.red(f"'{keyword}' didn't match anything :/"))
-        prompt.generic('debug?', flowopts=('debug', 'quit'))
+            return ExPath(choice)
+        
+        prompt.generic(colors.red(f"'{keyword}' didn't match anything"), flowopts=True)

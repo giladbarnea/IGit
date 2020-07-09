@@ -9,7 +9,8 @@ from igit.status import Status
 from igit.util import shell
 from more_termcolor import colors
 
-from igit.branch import BranchTree
+from igit.branches import Branches
+from igit.util.misc import yellowprint, brightyellowprint, redprint
 
 
 @click.command()
@@ -17,23 +18,26 @@ from igit.branch import BranchTree
 def main(branch):
     status = Status()
     if status:
-        if not prompt.confirm('Uncommitted changes, continue?'):
-            sys.exit('aborting')
-    btree = BranchTree()
-    currbranch = btree.current
+        if not prompt.confirm('Uncommitted changes, checkout anyway?'):
+            print('aborting')
+            return
+    btree = Branches()
     
-    if currbranch == branch:
-        sys.exit(colors.yellow(f'Already on {branch}'))
-    
-    branches = btree.branchnames
-    if branch not in branches:
-        print(colors.yellow(f"didn't find {branch} in branches"))
+    if branch not in btree:
+        yellowprint(f'"{branch}" not in branches, searching...')
         branch = btree.search(branch)
+    if btree.current == branch:
+        yellowprint(f'Already on {branch}')
+        return
     if not branch:
-        sys.exit(colors.red(f"Couldn't find branch"))
+        redprint(f"Couldn't find branch")
+        return
     shell.run(f'git checkout {branch}')
+    if not prompt.confirm('git pull?'):
+        print('aborting')
+        return
     if git.pull() == 1:
-        print(colors.yellow(f"git pull failed"))
+        brightyellowprint(f"git pull failed")
 
 
 if __name__ == '__main__':
