@@ -51,8 +51,8 @@ def main(paths):
         gitignore.write(existing_paths)
     
     commitmsg = f'Removed from cache: ' + ', '.join(map(str, paths))
-    key, answer = prompt.generic(f'commit and push?', f'yes, commit with "{commitmsg}"', 'custom commit message', flowopts='quit')
-    if key != 'y':
+    answer = prompt.generic(f'commit and push?', f'yes, commit with "{commitmsg}"', 'custom commit message', flowopts='quit')
+    if answer is not True:
         commitmsg = prompt.generic('commit msg:', free_input=True)[1]
     shell.run(f'git commit -am "{commitmsg}"')
     git.push()

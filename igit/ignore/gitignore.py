@@ -58,9 +58,8 @@ class Gitignore:
         for ignored in self.values:
             if ignored == p:
                 if not quiet:
-                    yellowprint(f'{p} already in gitignore, continuing')
+                    logger.warn(f'{p} already in gitignore, continuing')
                 return False
-            logger.debug(f'ignored:', ignored, 'p:', p, types=True)
             if ignored.parent_of(p):
                 if quiet:
                     return False
@@ -97,7 +96,7 @@ class Gitignore:
         # noinspection PyUnreachableCode
         path = ExPath(path)
         if path not in self:
-            brightyellowprint(f'Gitignore.unignore(path={path}): not in self. returning')
+            logger.boldwarn(f'Gitignore.unignore(path={path}): not in self. returning')
             return
         if confirm and not prompt.confirm(f'Remove {path} from .gitignore?'):
             print('aborting')
@@ -114,7 +113,7 @@ class Gitignore:
             to_write = f'\n{p}'
             if confirm and not prompt.confirm(f'Add {p} to .gitignore?'):
                 continue
-            greenprint(f'Adding {p} to .gitignore. dry_run={dry_run}')
+            logger.info(f'Adding {p} to .gitignore. dry_run={dry_run}, backup={backup}, confirm={confirm}')
             writelines.append(to_write)
         if dry_run:
             print('dry_run, returning')
@@ -127,8 +126,6 @@ class Gitignore:
         with self.file.open(mode='a') as file:
             file.write(''.join(sorted(writelines)))
         Gitignore.values.fget.clear_cache()
-        
-        # TODO: reset cached self.values
     
     def is_subpath_of_ignored(self, p) -> bool:
         """Returns True if `p` is strictly a subpath of a path in .gitignore"""

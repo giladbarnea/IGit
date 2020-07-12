@@ -1,11 +1,16 @@
 #!/usr/bin/env python3.8
+from typing import Literal
+
 import click
 from igit.util import shell
 from igit.util.clickextensions import unrequired_opt
-from igit.user import User
+
+# from igit.user import User
+
+Host = Literal['gh', 'github']
 
 
-def build_url(repo, host, owner):
+def build_url(repo, host: Host, owner):
     if host in ('gh', 'github'):
         host = 'github.com'
     else:
@@ -29,11 +34,11 @@ def build_url(repo, host, owner):
 @click.command()
 @click.argument('repo')
 @click.argument('directory', required=False, default=None)
-@unrequired_opt('-h', '--host', default='gh')
+@unrequired_opt('-h', '--host', default='gh', type=Host)
 @unrequired_opt('-o', '--owner', default='giladbarnea')
 @unrequired_opt('-b', '--branch', default='master')
 @unrequired_opt('-g', '--separate-git-dir')
-def main(repo, directory, host, owner, branch, separate_git_dir):
+def main(repo, directory, host: Host, owner, branch, separate_git_dir):
     cmd = 'git clone '
     if branch != 'master':
         cmd += f'--branch={branch} '

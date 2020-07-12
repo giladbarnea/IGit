@@ -2,7 +2,7 @@ import re
 from pathlib import Path, PosixPath
 from typing import Union, Any, Generator, Tuple
 
-from igit.util.misc import darkprint, yellowprint
+from igit.util.misc import darkprint, yellowprint, return_none_if_errors
 from igit.util.regex import FILE_SUFFIX, is_only_regex, has_glob, is_only_glob
 
 
@@ -26,7 +26,11 @@ class ExPath(PosixPath):
             raise
     
     def __eq__(self, other) -> bool:
-        return Path(self) == Path(other)
+        try:
+            return Path(self) == Path(other)
+        except TypeError as e:
+            # example: other is None
+            return False
     
     # def __eq__(self, other):
     #     darkprint(f'{repr(self)}.__eq__(other={repr(other)})')

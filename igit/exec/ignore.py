@@ -12,7 +12,9 @@ from igit.util.misc import darkprint
 from igit.util.path import ExPath, ExPathOrStr
 from more_termcolor import colors
 from more_termcolor.colors import italic as ita, dark
+from igit_debug.loggr import Loggr
 
+logger = Loggr(__name__)
 tabchar = '\t'
 
 
@@ -28,6 +30,7 @@ def write(paths: List[ExPath], confirm: bool, dry_run: bool, backup: bool):
 
 
 def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[ExPath]:
+    logger.debug(f'exclude_parent:', exclude_parent, 'exclude_paths:', exclude_paths, 'ignore_paths:', ignore_paths)
     statusfiles = None
     paths: List[ExPath] = []
     skip_non_existent = False
@@ -35,7 +38,7 @@ def build_paths(exclude_parent, exclude_paths, ignore_paths) -> List[ExPath]:
     for f in ignore_paths:
         # * wildcard
         if "*" in f:
-            paths.append(f)
+            paths.append(f)  # TODO: now that ExPath supports glob, ...
             continue
         
         # * index
