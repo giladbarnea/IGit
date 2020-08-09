@@ -3,7 +3,7 @@ import inspect
 import os
 
 import re
-from typing import Union, overload
+from typing import Union, overload, Optional
 
 from more_termcolor import cprint
 import builtins
@@ -22,6 +22,10 @@ def clean(string: str) -> str:
 def unquote(string) -> str:
     # TODO: "gallery is MOBILE only if <= $BP3" -> "gallery is MOBILE only if <=" (maybe bcz bash?)
     string = str(string)
+    # content = quoted_content(string)
+    # if content:
+    #     return content.strip()
+    # return string.strip()
     match = re.fullmatch(r'(["\'])(.*)\1', string, re.DOTALL)
     if match:  # "'hello'"
         string = match.groups()[1]
@@ -49,7 +53,7 @@ def trim_at(string: str, idx: int) -> str:
 def is_pycharm():
     ispycharm = 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
     if ispycharm:
-        print('pycharm!')
+        print('using pycharm')
     return ispycharm
 
 
@@ -62,6 +66,8 @@ def getsecret(label: str) -> str:
         if item.get_label() == label:
             return item.get_secret().decode()
 
+def noop(*args,**kwargs):
+    pass
 
 def return_none_if_errors(*exc):
     """If no `exc` specified, returns None on any exception.
@@ -105,80 +111,68 @@ def return_none_if_errors(*exc):
     return wrap
 
 
-@return_none_if_errors(ValueError)
-def parse_slice(val: Union[str, int, slice]) -> slice:
-    """Handles int, str ("1"), str ("1:3") and slice.
-    Returns None if conversion fails.
+@return_none_if_errors(ValueError, TypeError)
+def safeslice(val: Union[str, int, slice]) -> slice:
+    """Safe constructor for slice. Handles "2", "0:2", and ":2".
+    Always returns a slice (or None if conversion fails).
     
-    string:
-    
-    >>> l = [0,1,2]
-    >>> l[parse_slice("0")]
-    [0]
-    >>> l[parse_slice("0:2")]
-    [0, 1]
-    >>> parse_slice("foo") is None
+    >>> mylist = ['first', 'second', 'third']
+    >>> mylist[safeslice("1")] == mylist[safeslice(1)] == ['first']
     True
     
-    int:
+    >>> mylist[safeslice("0:2")] == mylist[safeslice(slice(0,2))] == ['first', 'second']
+    True
     
-    >>> l[parse_slice(0)]
-    [0]
+    >>> mylist[safeslice(":2")] == mylist[safeslice(slice(2))] == ['first', 'second']
+    True
     
-    slice:
-    
-    >>> l[parse_slice(slice(0,2))]
-    [0, 1]
+    >>> safeslice("foo") is None
+    True
     """
     
     def _to_slice(_val) -> slice:
         if isinstance(_val, slice):
             return _val
-        _stop = int(_val) + 1
-        return slice(_stop)
+        # _stop = int(_val) + 1
+        return slice(int(_val))  # may raise TypeError → None
     
     if isinstance(val, str):
         val = val.strip()
         if ':' in val:
             start, _, stop = val.partition(':')
+            if start == '':  # ":2"
+                start = 0
             return slice(int(start), int(stop))
     return _to_slice(val)
 
 
-@return_none_if_errors(ValueError)
-def parse_idx(val: Union[str, int, slice]) -> int:
-    """Handles int, str ("1"), and slice.
-    Returns None if conversion fails.
+@return_none_if_errors(ValueError, TypeError)
+def safeint(val: Union[str, int]) -> int:
+    """Handles int and str ("1").
+    Always returns an int (or None if cannot be used as a precise index).
     
-    string:
-
-    >>> l = [0,1,2]
-    >>> l[parse_idx("0")]
-    0
-    >>> parse_idx("0:2") is None and parse_idx("foo") is None
+    >>> mylist = ['first', 'second']
+    >>> mylist[safeint("0")] == mylist[safeint(0)] == 'first'
     True
-
-    int:
-
-    >>> l[parse_idx(0)]
-    0
-
-    slice:
-
-    >>> l[parse_idx(slice(0,2))]
-    0
-    """
     
-    def _to_idx(_val) -> int:
-        if isinstance(_val, slice):
-            return _val.start
-        return int(_val)
+    >>> all(bad is None for bad in (safeint("0:2"), safeint(slice(0, 2)), safeint("foo")))
+    True
+    """
     
     if isinstance(val, str):
         val = val.strip()
-    return _to_idx(val)
+    return int(val)  # may raise TypeError → None
 
-
+def to_int_or_slice(val):
+    """Tries converting to int, then to slice if fails.
+    Finally returns None if converting to slice fails as well"""
+    _int = safeint(val)
+    if _int is not None:
+        return _int
+    _slice = safeslice(val)
+    if _slice is not None:
+        return _slice
+    return None
 def darkprint(string):
     cprint(string, 'dark')
 

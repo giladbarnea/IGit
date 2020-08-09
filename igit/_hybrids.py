@@ -40,30 +40,40 @@ class HybridDict(Dict[str, str]):
     
     @overload
     def __getitem__(self, k: slice) -> List[str]:
+        """foo[1:3] → [...]"""
         ...
     
     @overload
     def __getitem__(self, k: str) -> Union[str, List[str]]:
-        """Returns str if `k` is a number; returns a list if `k` is slice-like"""
+        """If `k` is a number, returns value (str).
+        If `k` is slice-like, returns a list of values.
+        foo["1"] → "..."
+        foo["1:3"] → [value, ...]
+        """
         ...
     
     @overload
     def __getitem__(self, k: int) -> str:
+        """foo[1] → '...'"""
         ...
     
     def __getitem__(self, k):
+        """
+        :param k: foo[1], foo["1"] → "...".
+        foo[1:3], foo["1:3"] → [value, ...]
+        """
         try:
-            if isinstance(k, str):
-                return super().__getitem__(k)
-            try:
-                idx = misc.parse_idx(k)
-            except ValueError as e:
-                slyce = misc.parse_slice(k)
-                keys = list(self.keys())[slyce]
-                return [super().__getitem__(_k) for _k in keys]
-            else:
-                return super().__getitem__(list(self.keys())[idx])
+            keys = list(self.keys())
+            idx = misc.safeint(k)
+            if idx is not None:
+                return super().__getitem__(keys[idx])
+            slyce = misc.safeslice(k)
+            if slyce is not None:
+                sliced = keys[slyce]
+                return [super().__getitem__(_k) for _k in sliced]
+            return super().__getitem__(k)
         except KeyError as e:
+            # raised by super().__getitem__
             return self.search(k)
     
     @abstractmethod

@@ -84,7 +84,7 @@ setup(name='igit',
           'traitlets',
           # 'igit_debug @ /home/gilad/Code/igit_debug#egg=igit_debug'
           ],
-      extras_require={'tests': ['pytest', 'hypothesis', 'birdseye', 'ipdb', 'IPython', 'logbook']},
+      extras_require={'dev': ['pytest', 'hypothesis', 'birdseye', 'ipdb', 'IPython', 'logbook']},
       classifiers=[
           # https://pypi.org/classifiers/
           'Development Status :: 2 - Pre-Alpha',

@@ -1,15 +1,21 @@
 import click
 import typing
+import functools as ft
 
 
 def option(*param_decls, **attrs):
-    """`show_default=True`.
+    """`show_default = True`.
     
     If `default` in `attrs` and `type` is not, or vice versa, sets one based on the other.
     
+    Unless `default = None`, in which case `type` isn't set.
+    
+    If both are missing, `type` defaults to `str`.
+
+    
     `type` can be either:
-     - `str`
-     - `(str, int)`
+     - type, i.e. `str`
+     - tuple, i.e. `(str, int)`
      - `typing.Literal['foo']`
      - `click.typing.<Foo>` (which includes click.Choice(...))
     """
@@ -34,7 +40,9 @@ def option(*param_decls, **attrs):
         return click.option(*param_decls, **attrs)
     
     # type is missing.
-    if not default_is_missing:
+    # if default=None, it's probably just a placeholder and
+    # doesn't tell us above the 'real' type
+    if not default_is_missing and default is not None:
         attrs['type'] = type(default)
         return click.option(*param_decls, **attrs)
     
@@ -43,10 +51,40 @@ def option(*param_decls, **attrs):
 
 
 def unrequired_opt(*param_decls, **attrs):
+    """`required = False, show_default = True`.
+
+    If `default` in `attrs` and `type` is not, or vice versa, sets one based on the other.
+    
+    Unless `default = None`, in which case `type` isn't set.
+    
+    If both are missing, `type` defaults to `str`.
+
+    `type` can be either:
+     - type, i.e. `str`
+     - tuple, i.e. `(str, int)`
+     - `typing.Literal['foo']`
+     - `click.typing.<Foo>` (which includes click.Choice(...))
+    """
+    
     attrs['required'] = False
     return option(*param_decls, **attrs)
 
 
 def required_opt(*param_decls, **attrs):
+    """`required = True, show_default = True`.
+
+    If `default` in `attrs` and `type` is not, or vice versa, sets one based on the other.
+    
+    Unless `default = None`, in which case `type` isn't set.
+    
+    If both are missing, `type` defaults to `str`.
+
+    `type` can be either:
+     - type, i.e. `str`
+     - tuple, i.e. `(str, int)`
+     - `typing.Literal['foo']`
+     - `click.typing.<Foo>` (which includes click.Choice(...))
+    """
+    
     attrs['required'] = True
     return option(*param_decls, **attrs)

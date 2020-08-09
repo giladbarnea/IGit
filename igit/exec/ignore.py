@@ -20,10 +20,6 @@ tabchar = '\t'
 
 def write(paths: List[ExPath], confirm: bool, dry_run: bool, backup: bool):
     gitignore = Gitignore()
-    if not gitignore.exists():
-        # TODO: prompt for create
-        sys.exit(colors.brightred(f'{gitignore.absolute()} is not file'))
-    
     gitignore.write(paths, confirm=confirm, dry_run=dry_run, backup=backup)
     if dry_run:
         print('dry run finished')
@@ -122,6 +118,7 @@ def ignore(confirm: bool, dry_run: bool, backup: bool, ignore_paths, exclude_pat
 @unrequired_opt('-n', '--dry-run', help='dont actually write to file. flag.', is_flag=True)
 @unrequired_opt('-b', '--backup', help='create a .gitignore.backup before making changes. flag.', is_flag=True, default=True)
 def main(ignore_paths: List[ExPathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm, dry_run, backup):
+    # TODO: support i.e. "e/h/package" for "efficient-frontier/home-task/package-lock.json"
     darkprint(f'ignore.py main() | ignore_paths: {ignore_paths}, exclude_paths_tuple: {exclude_paths_tuple}, confirm: {confirm}, dry_run: {dry_run}, backup: {backup}')
     if exclude_paths_tuple:
         for exclude_paths_str in exclude_paths_tuple:

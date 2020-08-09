@@ -1,14 +1,14 @@
 #!/usr/bin/env python3.8
-import os
 import sys
+
 import click
+from more_termcolor import colors
+
 from igit import prompt, git
 from igit.ignore import Gitignore
 from igit.status import Status
 from igit.util import shell
-from igit.util.misc import unquote
-from igit.util.path import ExPath
-from more_termcolor import colors
+from igit.util.misc import yellowprint
 
 
 @click.command()
@@ -24,24 +24,22 @@ def main(paths):
     status = Status()
     existing_paths = []
     for p in paths:
-        try:
-            # * maybe index
-            p = status[p]
-        except TypeError as e:
-            # * not index, just str
-            p = ExPath(unquote(p))
-        
-        if not p.exists():
-            print(f"{colors.yellow(p)} does not exist, skipping")
+        breakpoint()
+        path = status.search(p, noprompt=False)
+        if not path:
+            yellowprint(f"status.search({p}) return None, skipping")
+            continue
+        if not path.exists():
+            yellowprint(f"{p} does not exist, skipping")
             continue
         
         # exists
-        if p.is_dir():
-            cmds.append(f'git rm -r --cached {p}')
+        if path.is_dir():
+            cmds.append(f'git rm -r --cached {path}')
         else:
-            cmds.append(f'git rm --cached {p}')
+            cmds.append(f'git rm --cached {path}')
         
-        existing_paths.append(p)
+        existing_paths.append(path)
     
     if not cmds:
         sys.exit(colors.red('no values to rm, exiting'))

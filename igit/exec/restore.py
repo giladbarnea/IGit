@@ -21,7 +21,7 @@ def main(index_or_substr):
             idx, choice = prompt.choose('which?', *status.files, flowopts='quit', free_input=True)
             if idx is None:
                 # free input
-                restore = status.search(choice)
+                restore = status.search(choice, noprompt=False)
             else:
                 restore = status.files[idx]
     

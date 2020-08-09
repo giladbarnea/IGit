@@ -1,24 +1,24 @@
 import re
 from typing import Any, List, Callable, Generator
 
-from igit.util.cache import memoize
+from igit_debug.loggr import Loggr
 from more_termcolor import colors
 
 from igit import prompt
 from igit.util import shell
-from igit.util.misc import yellowprint, brightyellowprint, greenprint, darkprint
+from igit.util.cache import memoize
 from igit.util.path import ExPath
-from igit_debug.loggr import Loggr
 
 logger = Loggr(__name__)
+WORD_RE = re.compile('\w')
 
 
 class Gitignore:
     # https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files
     def __init__(self):
         self.file = ExPath('.gitignore')
-        if not self.file.is_file():
-            raise FileNotFoundError(f'Gitignore.__init__(): {self.file.absolute()} is not a file')
+        if not self.file.exists():
+            raise FileNotFoundError(f'Gitignore.__init__(): {self.file.absolute()} does not exist')
     
     def __getitem__(self, item):
         return self.values[item]
@@ -49,7 +49,7 @@ class Gitignore:
         lines = data.splitlines()
         paths = []
         for x in lines:
-            if not bool(x) or '#' in x:
+            if not bool(x) or '#' in x or not WORD_RE.search(x):
                 continue
             paths.append(ExPath(x))
         return [*paths, ExPath('.git')]
@@ -90,30 +90,18 @@ class Gitignore:
                 return False
             return True
     
-    def unignore(self, path, *, confirm=False, dry_run=False, backup=True):
-        # TODO: this is not working
-        raise NotImplementedError
-        # noinspection PyUnreachableCode
-        path = ExPath(path)
-        if path not in self:
-            logger.boldwarn(f'Gitignore.unignore(path={path}): not in self. returning')
-            return
-        if confirm and not prompt.confirm(f'Remove {path} from .gitignore?'):
-            print('aborting')
-            return
-        if dry_run:
-            print('dry_run, returning')
-            return
-        self.write([p for p in self.values if p != path], backup=backup)
-    
-    def write(self, paths, *, confirm=False, dry_run=False, backup=True):
-        logger.debug(f'paths:', paths, 'confirm:', confirm, 'dry_run:', dry_run, 'backup:', backup)
+    def write(self, paths, *, verify_paths=True, confirm=False, dry_run=False, backup=True):
+        logger.debug(f'paths:', paths, 'verify_paths:', verify_paths, 'confirm:', confirm, 'dry_run:', dry_run, 'backup:', backup)
         writelines = []
-        for p in filter(self.should_add_to_gitignore, paths):
+        if verify_paths:
+            should_add_to_gitignore = self.should_add_to_gitignore
+        else:
+            should_add_to_gitignore = lambda p: True
+        for p in filter(should_add_to_gitignore, paths):
             to_write = f'\n{p}'
             if confirm and not prompt.confirm(f'Add {p} to .gitignore?'):
                 continue
-            logger.info(f'Adding {p} to .gitignore. dry_run={dry_run}, backup={backup}, confirm={confirm}')
+            logger.good(f'Adding {p} to .gitignore. dry_run={dry_run}, backup={backup}, confirm={confirm}')
             writelines.append(to_write)
         if dry_run:
             print('dry_run, returning')
@@ -126,6 +114,25 @@ class Gitignore:
         with self.file.open(mode='a') as file:
             file.write(''.join(sorted(writelines)))
         Gitignore.values.fget.clear_cache()
+    
+    def unignore(self, path, *, confirm=False, dry_run=False, backup=True):
+        path = ExPath(path)
+        newvals = []
+        found = False
+        for ignored in self:
+            if ignored == path:
+                breakpoint()
+                found = True
+                continue
+            newvals.append(ignored)
+        if not found:
+            logger.boldwarn(f'Gitignore.unignore(path={path}): not in self. returning')
+            return
+        
+        if confirm and not prompt.confirm(f'Remove {path} from .gitignore?'):
+            print('aborting')
+            return
+        self.write(newvals, verify_paths=False, dry_run=dry_run, backup=backup)
     
     def is_subpath_of_ignored(self, p) -> bool:
         """Returns True if `p` is strictly a subpath of a path in .gitignore"""

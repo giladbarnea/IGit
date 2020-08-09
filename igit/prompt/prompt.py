@@ -7,7 +7,7 @@ from igit.abcs import prettyrepr
 from igit.prompt.item import MutableItem, FlowItem, LexicItem
 from igit.prompt.options import Options, NumOptions, LexicOptions
 from igit.util import misc
-from igit.util.misc import darkprint, parse_slice, brightyellowprint
+from igit.util.misc import darkprint, brightyellowprint
 
 
 def _input(s):
@@ -147,6 +147,7 @@ class Action(BasePrompt):
         super().__init__(question, **kwargs)
 
 
+# TODO: Choice can return index! change docs
 class Choice(BasePrompt):
     """If `free_input=True`, `answer` may be (None, str) or (None, slice) (if input is e.g. "2:5").
     
@@ -160,9 +161,13 @@ class Choice(BasePrompt):
         ans_key, ans_value = super().get_answer(question, free_input=free_input)
         if ans_key is None:
             # free input
-            ans_value = parse_slice(ans_value)
+            indexer = misc.to_int_or_slice(ans_value)
+            if indexer is not None:
+                ans_value = indexer
         else:
-            ans_key = parse_slice(ans_key)
+            indexer = misc.to_int_or_slice(ans_key)
+            if indexer is not None:
+                ans_key = indexer
         return ans_key, ans_value
     
     def __init__(self, question: str, *options: str, **kwargs):

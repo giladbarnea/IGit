@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic, Collection
+from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic, Collection, Iterable
 
 from fuzzysearch import find_near_matches
 from igit.util import regex
@@ -21,7 +21,7 @@ T = TypeVar('T')
 class Matches(Generic[T]):
     def __init__(self, *, maxsize):
         self.count = 0
-        self.matches: Dict[float, Collection[T]] = defaultdict(list)
+        self.matches: Dict[float, List[T]] = defaultdict(list)
         self.worst_score = 0
         self.best_score = 999
         self._maxsize = maxsize
@@ -76,7 +76,7 @@ class Matches(Generic[T]):
         
         # score is worst than worst: don't let in
     
-    def best(self) -> Collection[T]:
+    def best(self) -> List[T]:
         if not self.matches:
             logger.debug(f'no self.matches → returning None')
             return None
@@ -86,7 +86,9 @@ class Matches(Generic[T]):
 
 
 @loginout
-def nearest(keyword: str, collection: Collection[T], cutoff=2) -> T:
+def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
+    """Tries to get fuzzy().best()[0]. Returns None if nothing matched.
+    Doesn't prompt."""
     matches = fuzzy(keyword, collection, cutoff)
     
     if matches is None:
@@ -103,6 +105,9 @@ def nearest(keyword: str, collection: Collection[T], cutoff=2) -> T:
 
 
 def fuzzy(keyword: str, collection: Collection[T], cutoff=2) -> Optional[Matches[T]]:
+    """Returns a `Matches` instance, or None if nothing matched.
+    Doesn't prompt.
+    """
     if not collection or not any(item for item in collection):
         raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
@@ -205,7 +210,7 @@ def iter_maybes(keyword: str, collection: Collection[T], *extra_options, criteri
     """Doesn't prompt. Yields three `[matches...], is_last` tuples.
     1st: str method by `criterion`
     2nd: re.search ignoring word separators
-    3rd: fuzzy search"""
+    3rd: fuzzy search (what `nearest()` uses)"""
     is_maybe = _create_is_maybe_predicate(criterion)
     
     maybes = [item for item in collection if is_maybe(item, keyword)]
