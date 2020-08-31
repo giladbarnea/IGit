@@ -17,6 +17,7 @@ def pull() -> int:
 
 def push() -> int:
     # sp.check_output(shlex.split('git fetch')) == b'' when nothing to pull
+    # todo: understand how to identify when 'git push --set-upstream origin master' is needed
     return sp.call('git push'.split())
 
 

@@ -176,7 +176,8 @@ def to_int_or_slice(val):
 def darkprint(string):
     cprint(string, 'dark')
 
-
+def whiteprint(string):
+    cprint(string,'white')
 def greenprint(string):
     cprint(string, 'green')
 

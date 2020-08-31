@@ -117,7 +117,7 @@ def ignore(confirm: bool, dry_run: bool, backup: bool, ignore_paths, exclude_pat
 @unrequired_opt('-c', '--confirm', help='confirm before each write. flag.', is_flag=True)
 @unrequired_opt('-n', '--dry-run', help='dont actually write to file. flag.', is_flag=True)
 @unrequired_opt('-b', '--backup', help='create a .gitignore.backup before making changes. flag.', is_flag=True, default=True)
-def main(ignore_paths: List[ExPathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm, dry_run, backup):
+def main(ignore_paths: List[ExPathOrStr], exclude_paths_tuple: Tuple[str, ...], confirm:bool=False, dry_run:bool=False, backup:bool=True):
     # TODO: support i.e. "e/h/package" for "efficient-frontier/home-task/package-lock.json"
     darkprint(f'ignore.py main() | ignore_paths: {ignore_paths}, exclude_paths_tuple: {exclude_paths_tuple}, confirm: {confirm}, dry_run: {dry_run}, backup: {backup}')
     if exclude_paths_tuple:

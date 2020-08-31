@@ -12,15 +12,24 @@ from igit.util.misc import yellowprint, brightyellowprint
 def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Literal['short', 'summary', 'full']] = True,
         input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE):
     """
+    Basically a wrapper to `sp.run(shlex.split(cmd))`.
+    
+    Always:
+     - Prints stderr (if exists) in bright yellow.
+     - Uses ExcHandler if an exception occurrs
     
     :param cmds:
-    :param printout:
-    :param printcmd:
-    :param raiseonfail: A bool or either 'short', 'summary', 'full'. Controls output of ExcHandler. True is equiv to 'full'.
-    :param input:
-    :param stdout:
-    :param stderr:
-    :return:
+    :param bool printout: Print the output of each command. Default True.
+    :param bool printcmd: Print the command before execution in italic bright black. Default True.
+    :param raiseonfail: Regarding python exceptions, not failed commands.
+      If False, suppresses exceptions, but prints their summaries.
+      If True, actually raises the exception, but prints ExcHandler beforehand.
+      Value can be a bool or either 'short', 'summary', 'full' to control the output of ExcHandler. True is equiv to 'full'.
+      Default True.
+    :param bytes input: Default None.
+    :param int stdout: default sp.PIPE.
+    :param int stderr: default sp.PIPE.
+    :return: A string or a list of strings (stripped), depending on whether a single command or many commands were passed.
     """
     # TODO: poll every second for long processes, like git clone
     outs = []
