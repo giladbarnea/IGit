@@ -9,7 +9,7 @@ from igit.ignore import Gitignore
 from igit.status import Status
 from igit.util.clickextensions import unrequired_opt
 from igit.util.misc import darkprint
-from igit.util.path import ExPath, ExPathOrStr
+from igit.expath import ExPath, ExPathOrStr
 from more_termcolor import colors
 from more_termcolor.colors import italic as ita, dark
 from igit_debug.loggr import Loggr

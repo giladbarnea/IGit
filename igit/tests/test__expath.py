@@ -1,101 +1,18 @@
+"""-svv -c igit/tests/pytest.ini"""
 import os
 from pathlib import Path
 
 import pytest
 
+from igit.expath import ExPath
+from igit.regex import REGEX_CHAR
 from igit.tests.common import get_permutations_in_size_range, has_letters_and_punc, path_regexes, mixed_suffixes
-from igit.util.misc import brightredprint
-from igit.util.path import has_file_suffix, ExPath
-
-from igit.util.regex import REGEX_CHAR
+from igit.util import misc
 
 giladdirstr = os.getenv('HOME')  # /home/gilad
 HOME_EXPATH = ExPath('/home')
 
 GILAD_EXPATH = ExPath(giladdirstr)
-
-
-# ** has_file_suffix
-def test__has_file_suffix__with_suffix__startswith_path_reg():
-    # e.g. '.*/py_venv.xml'. should return has suffix (True)
-    with_suffix = 'py_venv.xml'
-    assert has_file_suffix(with_suffix) is True
-    for reg in path_regexes():
-        val = f'{reg}{with_suffix}'
-        actual = has_file_suffix(val)
-        assert actual is True
-
-
-def test__has_file_suffix__with_suffix__no_stem__startswith_path_reg():
-    # e.g. '*.xml'. should return has suffix (True)
-    with_suffix = '*.xml'
-    actual = has_file_suffix(with_suffix)
-    assert actual is True
-    for reg in path_regexes():
-        val = f'{reg}{with_suffix}'
-        actual = has_file_suffix(val)
-        assert actual is True
-
-
-def test__has_file_suffix__with_mixed_regex_suffix():
-    # e.g. 'py_venv.xm?l'. should return has suffix (True)
-    for suffix in mixed_suffixes():
-        with_suffix = f'py_venv.{suffix}'
-        actual = has_file_suffix(with_suffix)
-        assert actual is True
-
-
-def test__has_file_suffix__everything_mixed_with_regex():
-    # e.g. '.*/py_v[en]*v.xm?l'. should return has suffix (True)
-    assert has_file_suffix('.*/py_v[en]*v.xm?l') is True
-    mixed_stems = get_permutations_in_size_range(f'{REGEX_CHAR}.py_venv-1257', slice(5), has_letters_and_punc)
-    for stem in mixed_stems:
-        for suffix in mixed_suffixes():
-            name = f'{stem}.{suffix}'
-            actual = has_file_suffix(name)
-            assert actual is True
-            for reg in path_regexes():
-                val = f'{reg}{name}'
-                actual = has_file_suffix(val)
-                assert actual is True
-
-
-def test__has_file_suffix__no_suffix__startswith_path_reg():
-    # e.g. '.*/py_venv'. should return no suffix (False)
-    no_suffix = 'py_venv'
-    assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes():
-        val = f'{reg}{no_suffix}'
-        actual = has_file_suffix(val)
-        assert actual is False
-
-
-def test__has_file_suffix__no_suffix__endswith_path_reg():
-    # e.g. 'py_venv.*/'. should return no suffix (False)
-    no_suffix = 'py_venv'
-    assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes():
-        val = f'{no_suffix}{reg}'
-        actual = has_file_suffix(val)
-        assert actual is False
-
-
-def test__has_file_suffix__no_suffix__surrounded_by_path_reg():
-    # e.g. '.*/py_venv.*/'. should return no suffix (False)
-    no_suffix = 'py_venv'
-    assert has_file_suffix(no_suffix) is False
-    for reg in path_regexes():
-        for morereg in path_regexes():
-            val = f'{morereg}{no_suffix}{reg}'
-            actual = has_file_suffix(val)
-            assert actual is False
-
-
-def test__has_file_suffix__real_world():
-    for nosuffix in ['.*/py_venv.*/',
-                     'file',
-                     'home/gilad/.local/*', ]:
-        assert not has_file_suffix(nosuffix)
 
 
 def path_ctor_permutations(path: str):
@@ -104,7 +21,6 @@ def path_ctor_permutations(path: str):
         yield ctor(path)
 
 
-# ** ExPath
 class Test__ExPath:
     class glob:
         class exists__is_dir__is_file:
@@ -150,10 +66,12 @@ class Test__ExPath:
                 assert ExPath('/home/gil*d/.bashrc').is_file()
                 assert ExPath('/*ome/gilad/.bashrc').is_file()
             
+            @pytest.mark.skip('Not Implemented')
             def test__multiple_wildcards__whole_part(self):
                 assert ExPath('/*/gilad/*').is_dir()
                 assert ExPath('/*/gilad/*').is_file() is False
             
+            @pytest.mark.skip('Not Implemented')
             def test__multiple_wildcards__part_of_part(self):
                 assert ExPath('/home/*/.b*shrc').is_dir() is False
                 assert ExPath('/home/*/.b*shrc').is_file()
@@ -175,6 +93,7 @@ class Test__ExPath:
                 assert not yarn.is_dir()
                 assert not yarn.is_file()
             
+            @pytest.mark.skip('Not Implemented')
             def test__mixed_dirs_and_files__multiple_wildcards(self):
                 # assumes .yarn/ and .yarnrc exist
                 yarn = ExPath('/home/*/.yarn*')
@@ -295,7 +214,7 @@ class Test__ExPath:
                         try:
                             assert not file.parent_of(otherfile)
                         except AssertionError as e:
-                            brightredprint(f'file: {repr(file)} ({type(file)}) is not parent of otherfile: {repr(otherfile)} ({type(otherfile)})')
+                            misc.brightredprint(f'file: {repr(file)} ({type(file)}) is not parent of otherfile: {repr(otherfile)} ({type(otherfile)})')
                             raise
                 
                 @pytest.mark.skip  # enable if test__has_file_suffix__real_world passes
@@ -327,22 +246,97 @@ class Test__ExPath:
                 assert HOME_EXPATH.parent_of(path)
     
     class subpath_of:
-        @pytest.mark.skip
+        def test__sanity(self):
+            assert GILAD_EXPATH.subpath_of(HOME_EXPATH)
+            for path in path_ctor_permutations('/home'):
+                assert GILAD_EXPATH.subpath_of(path)
+            for path in path_ctor_permutations('/home/'):
+                assert GILAD_EXPATH.subpath_of(path)
+            for path in path_ctor_permutations('/home/gilad'):
+                assert not GILAD_EXPATH.subpath_of(path)
+            for path in path_ctor_permutations('/home/gilad/'):
+                assert not GILAD_EXPATH.subpath_of(path)
+        
+        @pytest.mark.skip("Fails because not implemented")
         def test__tilda(self):
             for path in path_ctor_permutations('~/'):
                 assert GILAD_EXPATH.subpath_of(path)
-
-
-def test__ExPath__subpath_of__sanity():
-    assert GILAD_EXPATH.subpath_of(HOME_EXPATH)
-    for path in path_ctor_permutations('/home'):
-        assert GILAD_EXPATH.subpath_of(path)
-    for path in path_ctor_permutations('/home/'):
-        assert GILAD_EXPATH.subpath_of(path)
-    for path in path_ctor_permutations('/home/gilad'):
-        assert not GILAD_EXPATH.subpath_of(path)
-    for path in path_ctor_permutations('/home/gilad/'):
-        assert not GILAD_EXPATH.subpath_of(path)
+    
+    class suffix:
+        class has_file_suffix:
+            def test__with_suffix__startswith_path_reg(self):
+                # e.g. '.*/py_venv.xml'. should return has suffix (True)
+                with_suffix = ExPath('py_venv.xml')
+                assert with_suffix.has_file_suffix() is True
+                for reg in path_regexes():
+                    val = ExPath(f'{reg}{with_suffix}')
+                    actual = val.has_file_suffix()
+                    assert actual is True
+            
+            def test__with_suffix__no_stem__startswith_path_reg(self):
+                # e.g. '*.xml'. should return has suffix (True)
+                with_suffix = ExPath('*.xml')
+                actual = with_suffix.has_file_suffix()
+                assert actual is True
+                for reg in path_regexes():
+                    val = ExPath(f'{reg}{with_suffix}')
+                    actual = val.has_file_suffix()
+                    assert actual is True
+            
+            def test__with_mixed_regex_suffix(self):
+                # e.g. 'py_venv.xm?l'. should return has suffix (True)
+                for suffix in mixed_suffixes():
+                    with_suffix = ExPath(f'py_venv.{suffix}')
+                    actual = with_suffix.has_file_suffix()
+                    assert actual is True
+            
+            def test__everything_mixed_with_regex(self):
+                # e.g. '.*/py_v[en]*v.xm?l'. should return has suffix (True)
+                assert ExPath('.*/py_v[en]*v.xm?l').has_file_suffix() is True
+                mixed_stems = get_permutations_in_size_range(f'{REGEX_CHAR}.py_venv-1257', slice(5), has_letters_and_punc)
+                for stem in mixed_stems:
+                    for suffix in mixed_suffixes():
+                        name = ExPath(f'{stem}.{suffix}')
+                        actual = name.has_file_suffix()
+                        assert actual is True
+                        for reg in path_regexes():
+                            val = ExPath(f'{reg}{name}')
+                            actual = val.has_file_suffix()
+                            assert actual is True
+            
+            def test__no_suffix__startswith_path_reg(self):
+                # e.g. '.*/py_venv'. should return no suffix (False)
+                no_suffix = ExPath('py_venv')
+                assert no_suffix.has_file_suffix() is False
+                for reg in path_regexes():
+                    val = ExPath(f'{reg}{no_suffix}')
+                    actual = val.has_file_suffix()
+                    assert actual is False
+            
+            def test__no_suffix__endswith_path_reg(self):
+                # e.g. 'py_venv.*/'. should return no suffix (False)
+                no_suffix = ExPath('py_venv')
+                assert no_suffix.has_file_suffix() is False
+                for reg in path_regexes():
+                    val = ExPath(f'{no_suffix}{reg}')
+                    actual = val.has_file_suffix()
+                    assert actual is False
+            
+            def test__no_suffix__surrounded_by_path_reg(self):
+                # e.g. '.*/py_venv.*/'. should return no suffix (False)
+                no_suffix = ExPath('py_venv')
+                assert no_suffix.has_file_suffix() is False
+                for reg in path_regexes():
+                    for morereg in path_regexes():
+                        val = ExPath(f'{morereg}{no_suffix}{reg}')
+                        actual = val.has_file_suffix()
+                        assert actual is False
+            
+            def test__real_world(self):
+                for nosuffix in ['.*/py_venv.*/',
+                                 'file',
+                                 'home/gilad/.local/*', ]:
+                    assert not ExPath(nosuffix).has_file_suffix()
 
 
 @pytest.mark.skip

@@ -6,7 +6,7 @@ from more_termcolor import colors
 
 from igit import prompt, shell
 from igit.util.cache import memoize
-from igit.util.path import ExPath
+from igit.expath import ExPath
 
 logger = Loggr(__name__)
 WORD_RE = re.compile('\w')

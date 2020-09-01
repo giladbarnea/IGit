@@ -1,7 +1,5 @@
 #!/usr/bin/env python3.8
 import os
-import re
-from pathlib import Path
 from typing import Dict
 
 import click
@@ -13,9 +11,11 @@ from igit.status import Status
 from igit.util import misc
 from igit.util.clickextensions import unrequired_opt
 
-
 # called by _split_file()
-def _handle_splits(promptstr, main_file: Path, cwd, split_prefix, dry_run: bool):
+from igit.expath import ExPath
+
+
+def _handle_splits(promptstr, main_file: ExPath, cwd, split_prefix, dry_run: bool):
     """Handles the situation having the main file and existing splits (just created or pre-existed).
     Verifies split integrity and prompts whether to ignore or trash main file"""
     if prompt.confirm("temporarily join splits and verify integrity against main file?"):
@@ -39,7 +39,7 @@ def _handle_splits(promptstr, main_file: Path, cwd, split_prefix, dry_run: bool)
 
 
 # called by handle_large_files()
-def _split_file(abspath: Path, cwd, dry_run: bool):
+def _split_file(abspath: ExPath, cwd, dry_run: bool):
     # file.zip → file_zip_
     split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
     
@@ -61,7 +61,7 @@ def _split_file(abspath: Path, cwd, dry_run: bool):
 
 
 # called by get_large_files_from_status() and recursively
-def _get_large_files_in_dir(path: Path) -> Dict[Path, float]:
+def _get_large_files_in_dir(path: ExPath) -> Dict[ExPath, float]:
     large_subfiles = {}
     for p in path.iterdir():
         if not p.exists():
@@ -76,7 +76,7 @@ def _get_large_files_in_dir(path: Path) -> Dict[Path, float]:
     return large_subfiles
 
 
-def handle_large_files(cwd, largefiles: Dict[Path, float], dry_run: bool):
+def handle_large_files(cwd, largefiles: Dict[ExPath, float], dry_run: bool):
     misc.whiteprint(f'{len(largefiles)} large files sized >= 50MB found:')
     for abspath, mbsize in largefiles.items():
         stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
@@ -107,7 +107,7 @@ def handle_large_files(cwd, largefiles: Dict[Path, float], dry_run: bool):
                 _split_file(abspath, cwd, dry_run)
 
 
-def get_large_files_from_status(cwd, status: Status) -> Dict[Path, float]:
+def get_large_files_from_status(cwd, status: Status) -> Dict[ExPath, float]:
     largefiles = {}
     for f in status.files:
         statuce = status.file_status_map[f]
@@ -142,9 +142,9 @@ def main(commitmsg: str, dry_run: bool = False):
                 return
             return git.push()
     
-    cwd = Path(os.getcwd())
+    cwd = ExPath(os.getcwd())
     
-    largefiles: Dict[Path, float] = get_large_files_from_status(cwd, status)
+    largefiles: Dict[ExPath, float] = get_large_files_from_status(cwd, status)
     if largefiles:
         handle_large_files(cwd, largefiles, dry_run)
     

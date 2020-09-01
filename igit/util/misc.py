@@ -66,8 +66,10 @@ def getsecret(label: str) -> str:
         if item.get_label() == label:
             return item.get_secret().decode()
 
-def noop(*args,**kwargs):
+
+def noop(*args, **kwargs):
     pass
+
 
 def return_none_if_errors(*exc):
     """If no `exc` specified, returns None on any exception.
@@ -163,6 +165,7 @@ def safeint(val: Union[str, int]) -> int:
         val = val.strip()
     return int(val)  # may raise TypeError → None
 
+
 def to_int_or_slice(val):
     """Tries converting to int, then to slice if fails.
     Finally returns None if converting to slice fails as well"""
@@ -173,11 +176,16 @@ def to_int_or_slice(val):
     if _slice is not None:
         return _slice
     return None
+
+
 def darkprint(string):
     cprint(string, 'dark')
 
+
 def whiteprint(string):
-    cprint(string,'white')
+    cprint(string, 'white')
+
+
 def greenprint(string):
     cprint(string, 'green')
 
@@ -194,8 +202,8 @@ def brightyellowprint(string):
     cprint(string, 'bright yellow')
 
 
-def brightredprint(string):
-    cprint(string, 'bright red')
+def brightredprint(string, *args, **kwargs):
+    cprint(string, 'bright red', *args, **kwargs)
 
 
 def brightwhiteprint(string):

@@ -3,10 +3,11 @@ import os
 from typing import Tuple, List, Dict, overload, Union
 
 from igit.util.misc import darkprint
-from igit.util.path import ExPath, has_file_suffix
-from igit.util import cachedprop, search, regex, misc
-from igit import prompt, shell
-from igit.util.search import search_and_prompt
+# from igit.util.path import has_file_suffix
+from igit.expath import ExPath
+from igit.util import cachedprop, misc
+from igit import prompt, shell, search, regex
+from igit.search import search_and_prompt
 from more_termcolor import colors
 import re
 
@@ -131,7 +132,7 @@ class Status:
         for file in self.files:
             if file == path:
                 return file
-        has_suffix = has_file_suffix(path)
+        has_suffix = path.has_file_suffix()
         has_slash = '/' in keyword
         has_regex = regex.has_regex(keyword)
         darkprint(f'\thas_suffix: {has_suffix}, has_slash: {has_slash}, has_regex: {has_regex}')

@@ -13,7 +13,7 @@ FILE_SUFFIX: Pattern = re.compile(r'\.+[\w\d]{1,5}')
 # LEADING_RE: Pattern = re.compile(fr'({PATH_WILDCARD}*)(.*$)')
 YES_OR_NO: Pattern = re.compile(r'(yes|no|y|n)(\s.*)?', re.IGNORECASE)
 
-ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{\}<>$]+')  # TODO: why escape closing curly bracket?
+ONLY_REGEX: Pattern = re.compile(r'[\^.\\+?*()|\[\]{}<>$]+')  # TODO: why escape closing curly bracket?
 
 # e.g [a-z0-9]
 SQUARE_BRACKETS_REGEX = re.compile(r'\[([a-z](-[a-z])?|[0-9](-[0-9])?)+\]', re.IGNORECASE)

@@ -1,6 +1,6 @@
 import pickle
 from pathlib import Path
-from igit.util import search
+from igit import search
 
 
 def test__pyano0_2_0():

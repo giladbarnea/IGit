@@ -1,13 +1,17 @@
+import functools
 import io
 import re
 import string
 import sys
-from contextlib import contextmanager, _RedirectStream, redirect_stdout
+from contextlib import contextmanager, _RedirectStream
 from itertools import permutations, chain
 from typing import Sized, List, Tuple, Iterable
 
+from igit_debug import ExcHandler
+
+from igit.util import misc
 from igit.util.cache import memoize
-from igit.util.regex import REGEX_CHAR
+from igit.regex import REGEX_CHAR
 
 DOT_OR_QUOTE: re.Pattern = re.compile(r'[.\'"]+')
 letters_and_punc = string.ascii_letters + string.punctuation
@@ -175,6 +179,20 @@ def assert_raises(exc, *search_in_args):
         pass
 
 
+def unpartial(fn):
+    """
+    >>> def foo(bar):
+    ...     print(bar)
+    >>> partial = functools.partial(foo, 'bar')
+    >>> foo == unpartial(partial)
+    True
+    """
+    origfn = fn
+    while nested := getattr(origfn, 'func', None):
+        origfn = nested
+    return origfn
+
+
 class redirect_stdin(_RedirectStream):
     _stream = 'stdin'
 
@@ -190,3 +208,47 @@ def simulate_input(val):
     
     finally:
         sys.stdin = old_stdin
+
+
+def print_failing_cases(varname, failed_cases=None):
+    """
+    Prints out the value of `varname` whenever the test fails.
+    Useful for functions with for loops, when you want the function to keep going even if one iteration failed.
+    
+    Examples:
+    ::
+      @print_failing_cases('n')
+      def foo(*exclude):
+          for n in [1,2,3]:
+              if n in exclude:
+                  continue
+              assert n < 2
+    """
+    if not failed_cases:
+        failed_cases = set()
+    
+    def decorator(testfn):
+        @functools.wraps(testfn)
+        def wrap():
+            
+            try:
+                testfn()
+            except AssertionError as e:
+                h = ExcHandler(e)
+                if varname not in h.last.locals:
+                    raise ValueError(f"print_failing_cases({repr(varname)}): not in h.last.locals") from e
+                val = h.last.locals.get(varname)
+                failed_cases.add(val)
+                
+                misc.brightredprint(f'\n{unpartial(testfn).__qualname__} has failed when "{varname}" was {repr(val)}\n', 'bold')
+                
+                dec = print_failing_cases(varname, failed_cases)
+                partial = functools.partial(testfn, *failed_cases)
+                dec(partial)()
+            else:
+                # all failed cases are now in failed_cases, and testfn() did not raise an AssertionError.
+                unpartial(testfn)()
+        
+        return wrap
+    
+    return decorator

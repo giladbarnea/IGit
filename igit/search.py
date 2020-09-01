@@ -1,17 +1,14 @@
 import re
 from collections import defaultdict
-from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic, Collection, Iterable
+from typing import List, Optional, Generator, Literal, Callable, Tuple, TypeVar, Dict, Generic, Collection
 
 from fuzzysearch import find_near_matches
-from igit.util import regex
 from igit_debug.investigate import loginout
 from igit_debug.loggr import Loggr
-from more_termcolor import colors
 
-from igit import prompt
-from igit.prompt.item import FlowItem, Flow
+from igit import prompt, regex
+from igit.prompt.item import Flow
 from igit.util.misc import darkprint, brightyellowprint
-from contextlib import suppress
 
 logger = Loggr(__name__)
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']

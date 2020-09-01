@@ -8,11 +8,11 @@ from more_termcolor.colors import italic
 from igit.branches import Branches
 from igit.commits import Commits
 from igit.status import Status
-from igit.util import regex, misc
-from igit import shell
+from igit.util import misc
+from igit import shell, regex
 from igit.util.clickextensions import unrequired_opt
 from igit.util.misc import darkprint, redprint, brightwhiteprint
-from igit.util.search import search_and_prompt
+from igit.search import search_and_prompt
 
 tabchar = '\t'
 

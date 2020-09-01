@@ -1,6 +1,7 @@
 from typing import List
 
-from igit.util import cachedprop, regex
+from igit.util import cachedprop
+from igit import regex
 from igit.util.misc import redprint
 
 

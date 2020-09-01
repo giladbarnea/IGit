@@ -1,15 +1,15 @@
 import inspect
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from enum import Enum
 from typing import TypeVar, Dict, Generator, Tuple, Any, Type, NoReturn
 
 from igit_debug.loggr import Loggr
-from more_termcolor import cprint, colors
+from more_termcolor import colors
 
 from igit.abcs import prettyrepr
 from igit.util.misc import darkprint
-from igit.util.regex import YES_OR_NO
+from igit.regex import YES_OR_NO
 
 T = TypeVar('T')
 
