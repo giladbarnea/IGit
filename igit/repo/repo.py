@@ -1,7 +1,7 @@
 import re
 import sys
 
-from igit.util import shell
+from igit import shell
 from more_termcolor import colors
 
 

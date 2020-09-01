@@ -4,8 +4,7 @@ from typing import Any, List, Callable, Generator
 from igit_debug.loggr import Loggr
 from more_termcolor import colors
 
-from igit import prompt
-from igit.util import shell
+from igit import prompt, shell
 from igit.util.cache import memoize
 from igit.util.path import ExPath
 
@@ -77,7 +76,7 @@ class Gitignore:
         absolute = self.file.absolute()
         
         try:
-            shell.run(f'cp {absolute} {absolute}.backup', raiseonfail='summary')
+            shell.run(f'cp {absolute} {absolute}.backup', raiseexc='summary')
         except Exception as e:
             if not prompt.confirm('Backup failed, overwrite .gitignore anyway?', flowopts='debug'):
                 print('aborting')

@@ -2,12 +2,10 @@ import os
 
 from typing import Tuple, List, Dict, overload, Union
 
-from igit_debug.investigate import loginout
-
-from igit.util.misc import safeslice, darkprint
-from igit.util.path import ExPath, ExPathOrStr, has_file_suffix
-from igit.util import shell, cachedprop, search, regex, misc
-from igit import prompt
+from igit.util.misc import darkprint
+from igit.util.path import ExPath, has_file_suffix
+from igit.util import cachedprop, search, regex, misc
+from igit import prompt, shell
 from igit.util.search import search_and_prompt
 from more_termcolor import colors
 import re

@@ -9,10 +9,15 @@ from igit.util import misc
 from igit.util.misc import yellowprint, brightyellowprint
 
 
-def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Literal['short', 'summary', 'full']] = True,
-        input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE):
+def run(*cmds: str,
+        printout=True,
+        printcmd=True,
+        raiseexc: Union[bool, Literal['short', 'summary', 'full']] = True,
+        input: bytes = None,
+        stdout=sp.PIPE,
+        stderr=sp.PIPE):
     """
-    Basically a wrapper to `sp.run(shlex.split(cmd))`.
+    Basically a wrapper to `sp.run(shlex.split(cmd))` that returns stdout(s) strings.
     
     Always:
      - Prints stderr (if exists) in bright yellow.
@@ -21,15 +26,26 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Liter
     :param cmds:
     :param bool printout: Print the output of each command. Default True.
     :param bool printcmd: Print the command before execution in italic bright black. Default True.
-    :param raiseonfail: Regarding python exceptions, not failed commands.
+    :param raiseexc: Regarding python exceptions, not failed commands.
       If False, suppresses exceptions, but prints their summaries.
       If True, actually raises the exception, but prints ExcHandler beforehand.
       Value can be a bool or either 'short', 'summary', 'full' to control the output of ExcHandler. True is equiv to 'full'.
       Default True.
     :param bytes input: Default None.
-    :param int stdout: default sp.PIPE.
-    :param int stderr: default sp.PIPE.
+    :param int stdout: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
+    :param int stderr: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
     :return: A string or a list of strings (stripped), depending on whether a single command or many commands were passed.
+      If no command had any output, returns an empty str.
+    
+    
+    Examples:
+    ::
+      >>> vanilla = sp.run(shlex.split('rm does/not/exist'), stderr=sp.PIPE).stderr.decode().strip()
+      >>> run('rm does/not/exist', stderr=sp.STDOUT) == vanilla
+      ...
+      ...
+      ...
+      True
     """
     # TODO: poll every second for long processes, like git clone
     outs = []
@@ -49,7 +65,7 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Liter
             if input:
                 runargs['input'] = input
             
-            proc = sp.run(shlex.split(cmd), **runargs)
+            proc: sp.CompletedProcess = sp.run(shlex.split(cmd), **runargs)
             if proc.stdout:
                 out = proc.stdout.decode().strip()
             else:
@@ -60,16 +76,18 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Liter
                 brightyellowprint(stderr)
         
         except Exception as e:
-            print(colors.brightred(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseonfail is {raiseonfail}.'))
+            print(colors.brightred(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseexc is {raiseexc}.'))
             hdlr = ExcHandler(e)
-            if raiseonfail:
-                if raiseonfail is True:
+            
+            if raiseexc:
+                if raiseexc is True:
                     print(hdlr.full())
                 else:
-                    get_trace_fn = getattr(hdlr, raiseonfail, None)
-                    if get_trace_fn is None:
-                        brightyellowprint(f'ExcHandler doesnt have attr: {raiseonfail}')
-                    print(get_trace_fn())
+                    trace_fn = getattr(hdlr, raiseexc, None)
+                    if trace_fn is None:
+                        brightyellowprint(f'ExcHandler doesnt have fn: {raiseexc}. defaulting to `full()`')
+                        trace_fn = getattr(hdlr, 'full')
+                    print(trace_fn())
                 raise e
             print(hdlr.summary())
         else:
@@ -79,12 +97,14 @@ def run(*cmds: str, printout=True, printcmd=True, raiseonfail: Union[bool, Liter
                 outs.append(out)
     if outs:
         return outs[0] if len(outs) == 1 else outs
+    
     return ''
 
 
-def runquiet(*cmds: str, raiseonfail=True,
+def runquiet(*cmds: str, raiseexc=True,
              input: bytes = None, stdout=sp.PIPE, stderr=sp.PIPE) -> Union[str, List[str]]:
-    return run(*cmds, printout=False, printcmd=False, raiseonfail=raiseonfail, input=input, stdout=stdout, stderr=stderr)
+    """Convenience for `run(..., printout=False, printcmd=False)`"""
+    return run(*cmds, printout=False, printcmd=False, raiseexc=raiseexc, input=input, stdout=stdout, stderr=stderr)
 
 
 def get_terminal_width():

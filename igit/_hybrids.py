@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from typing import Dict, Any, Type, Optional, NoReturn, Union, overload, List
+from typing import Dict, Optional, NoReturn, Union, overload, List
 
 from igit_debug.investigate import loginout
 
-from igit.util import shell, cachedprop, regex, misc
+from igit.util import cachedprop, regex, misc
+from igit import shell
 from igit.util.search import search_and_prompt
 
 

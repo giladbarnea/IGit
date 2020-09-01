@@ -4,10 +4,9 @@ import sys
 
 import click
 
-from igit import git
+from igit import git, shell
 from igit import prompt
 from igit.status import Status
-from igit.util import shell
 
 from igit.branches import Branches
 

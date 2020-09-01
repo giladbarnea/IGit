@@ -2,7 +2,7 @@
 from typing import Literal
 
 import click
-from igit.util import shell
+from igit import shell
 from igit.util.clickextensions import unrequired_opt
 
 # from igit.user import User

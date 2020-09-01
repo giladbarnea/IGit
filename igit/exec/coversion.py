@@ -1,11 +1,10 @@
 #!/usr/bin/env python3.8
 import sys
 
-from igit import git
+from igit import git, shell
 from igit import prompt
 from igit.branches import Branches
 from igit.status import Status
-from igit.util import shell
 from more_termcolor import colors
 
 

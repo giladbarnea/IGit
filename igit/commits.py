@@ -2,7 +2,8 @@ import re
 from typing import Dict
 
 from igit._hybrids import HybridDict
-from igit.util import cachedprop, shell
+from igit.util import cachedprop
+from igit import shell
 
 
 class Commits(HybridDict):

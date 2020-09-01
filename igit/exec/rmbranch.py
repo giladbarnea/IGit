@@ -3,8 +3,7 @@ import sys
 
 import click
 
-from igit import prompt
-from igit.util import shell
+from igit import prompt, shell
 
 from igit.branches import Branches
 from more_termcolor import colors

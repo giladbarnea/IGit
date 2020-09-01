@@ -6,7 +6,7 @@ import click
 
 from igit.status import Status
 from more_termcolor import colors
-from igit.util import shell
+from igit import shell
 
 from igit.branches import Branches
 

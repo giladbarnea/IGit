@@ -4,10 +4,9 @@ import sys
 import click
 from more_termcolor import colors
 
-from igit import prompt, git
+from igit import prompt, git, shell
 from igit.ignore import Gitignore
 from igit.status import Status
-from igit.util import shell
 from igit.util.misc import yellowprint
 
 
@@ -44,7 +43,7 @@ def main(paths):
     if not cmds:
         sys.exit(colors.red('no values to rm, exiting'))
     
-    shell.run(*cmds, raiseonfail=False)
+    shell.run(*cmds, raiseexc=False)
     if prompt.confirm(f'try to ignore {len(existing_paths)} values?'):
         gitignore.write(existing_paths)
     

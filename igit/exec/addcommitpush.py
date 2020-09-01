@@ -7,37 +7,14 @@ from typing import Dict
 import click
 from more_termcolor import colors
 
-from igit import git, prompt
+from igit import git, prompt, shell
 from igit.exec.ignore import main as ignore
 from igit.status import Status
-from igit.util import shell, misc
+from igit.util import misc
 from igit.util.clickextensions import unrequired_opt
 
 
-def verify_shebang(f: Path, lines):
-    regex = re.compile(r'^#!/usr/bin/env python3\.([78])$')
-    firstline = lines[0].splitlines()[0]
-    if not re.fullmatch(regex, firstline):
-        raise NotImplementedError()
-        # noinspection PyUnreachableCode
-        answer = prompt.action(f"{f} first line invalid shebang ('{firstline.splitlines()[0]}')",
-                               'add to .gitignore', 'add python3.7 shebang', 'add python3.8 shebang',
-                               flowopts=True)
-        
-        if answer == '0':
-            ignore([f])
-            return
-        if answer in ('1', '2'):
-            shebang = '/usr/bin/env python3.'
-            if answer == '1':
-                shebang += '7'
-            else:
-                shebang += '8'
-            with f.open(mode='w') as opened:
-                opened.write('\n'.join([shebang] + lines))
-                misc.greenprint(f'Added shebag to {f.name} successfully')
-
-
+# called by _split_file()
 def _handle_splits(promptstr, main_file: Path, cwd, split_prefix, dry_run: bool):
     """Handles the situation having the main file and existing splits (just created or pre-existed).
     Verifies split integrity and prompts whether to ignore or trash main file"""
@@ -61,7 +38,8 @@ def _handle_splits(promptstr, main_file: Path, cwd, split_prefix, dry_run: bool)
             shell.run(f'gio trash "{main_file}"')
 
 
-def split_file(abspath: Path, cwd, dry_run: bool):
+# called by handle_large_files()
+def _split_file(abspath: Path, cwd, dry_run: bool):
     # file.zip → file_zip_
     split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
     
@@ -82,52 +60,8 @@ def split_file(abspath: Path, cwd, dry_run: bool):
     _handle_splits(f'created {len(splits)} splits.', abspath, cwd, split_prefix, dry_run)
 
 
-def handle_large_files(cwd, largefiles: Dict[Path, float], dry_run: bool):
-    misc.whiteprint(f'{len(largefiles)} large files sized >= 50MB found:')
-    for abspath, mbsize in largefiles.items():
-        stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
-        misc.whiteprint(stats)
-    key, answer = prompt.action('What to do?',
-                                'ignore all',
-                                'split all',
-                                'choose individually whether to ignore or split',
-                                flowopts=True)
-    if key == 'i':
-        ignore([p.relative_to(cwd) for p in largefiles], dry_run=dry_run)
-    elif key == 'c':
-        # choose individually
-        for abspath, mbsize in largefiles.items():
-            stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
-            misc.whiteprint(stats)
-            key, answer = prompt.action(f'Handling: {abspath}',
-                                        'ignore',
-                                        'split to subfiles (checks for existing beforehand)',
-                                        flowopts=True)
-            if key == 'i':
-                ignore(abspath.relative_to(cwd), dry_run=dry_run)
-            elif key == 's':
-                split_file(abspath, cwd, dry_run)
-                # # file.zip → file_zip_
-                # split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
-                #
-                # splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
-                # if splits:
-                #     misc.whiteprint('found pre-existing splits')
-                #     biggest_split = max(map(lambda split: split.lstat().st_size / 1000000, splits))
-                #     _handle_splits(f'found {len(splits)} existing splits, biggest is {biggest_split}MB.', abspath, cwd, split_prefix, dry_run)
-                #     continue
-                #
-                # misc.whiteprint('no pre-existing splits found. splitting...')
-                # if dry_run:
-                #     misc.whiteprint('dry run, not actually splitting. continuing to next file')
-                #     continue
-                # shell.run(f'split -d --bytes 49000KB "{abspath}" "{split_prefix}"')
-                #
-                # splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
-                # _handle_splits(f'created {len(splits)} splits.', abspath, cwd, split_prefix, dry_run)
-
-
-def get_large_files_in_dir(path: Path) -> Dict[Path, float]:
+# called by get_large_files_from_status() and recursively
+def _get_large_files_in_dir(path: Path) -> Dict[Path, float]:
     large_subfiles = {}
     for p in path.iterdir():
         if not p.exists():
@@ -138,8 +72,39 @@ def get_large_files_in_dir(path: Path) -> Dict[Path, float]:
             if mb >= 50:
                 large_subfiles[p] = mb
         else:
-            large_subfiles.update(get_large_files_in_dir(p))
+            large_subfiles.update(_get_large_files_in_dir(p))
     return large_subfiles
+
+
+def handle_large_files(cwd, largefiles: Dict[Path, float], dry_run: bool):
+    misc.whiteprint(f'{len(largefiles)} large files sized >= 50MB found:')
+    for abspath, mbsize in largefiles.items():
+        stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
+        misc.whiteprint(stats)
+    key, answer = prompt.action('What to do?',
+                                'ignore all',
+                                'split all (checks for pre-existing before splitting)',
+                                'choose individually whether to ignore or split',
+                                flowopts=True)
+    if key == 'i':
+        ignore([p.relative_to(cwd) for p in largefiles], dry_run=dry_run)
+    
+    elif key == 's':  # split all
+        for abspath, mbsize in largefiles.items():
+            _split_file(abspath, cwd, dry_run)
+    
+    elif key == 'c':  # choose individually
+        for abspath, mbsize in largefiles.items():
+            stats = f'{abspath.relative_to(cwd)} ({mbsize}MB)'
+            misc.whiteprint(stats)
+            key, answer = prompt.action(f'Handling: {abspath}',
+                                        'ignore',
+                                        'split to subfiles (checks for pre-existing beforehand)',
+                                        flowopts=True)
+            if key == 'i':
+                ignore(abspath.relative_to(cwd), dry_run=dry_run)
+            elif key == 's':
+                _split_file(abspath, cwd, dry_run)
 
 
 def get_large_files_from_status(cwd, status: Status) -> Dict[Path, float]:
@@ -154,7 +119,7 @@ def get_large_files_from_status(cwd, status: Status) -> Dict[Path, float]:
         mb = 0
         if abspath.exists():
             if abspath.is_dir():
-                large_subfiles = get_large_files_in_dir(abspath)
+                large_subfiles = _get_large_files_in_dir(abspath)
                 largefiles.update(large_subfiles)
             else:
                 mb = abspath.lstat().st_size / 1000000

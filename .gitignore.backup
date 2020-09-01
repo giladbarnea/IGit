@@ -6,5 +6,3 @@ env
 *.egg-info
 .hypothesis/
 .swp
-
-.env
