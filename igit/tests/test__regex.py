@@ -14,7 +14,7 @@ from igit.regex import (strip_trailing_path_wildcards,
                         REGEX_CHAR)
 from igit.tests import common
 from igit.tests.common import mixed_suffixes, split_iter_by, get_permutations, nonregex, has_regex_and_nonregex, iter_permutations, print_failing_cases
-from igit.util.cache import memoize
+from igit.cache import memoize
 
 
 @memoize

@@ -52,8 +52,6 @@ def trim_at(string: str, idx: int) -> str:
 
 def is_pycharm():
     ispycharm = 'JetBrains/Toolbox/apps/PyCharm-P' in os.environ.get('PYTHONPATH', '')
-    if ispycharm:
-        print('using pycharm')
     return ispycharm
 
 
@@ -178,33 +176,33 @@ def to_int_or_slice(val):
     return None
 
 
-def darkprint(string):
-    cprint(string, 'dark')
+def darkprint(string, *args, **kwargs):
+    cprint(string, 'dark', *args, **kwargs)
 
 
-def whiteprint(string):
-    cprint(string, 'white')
+def whiteprint(string, *args, **kwargs):
+    cprint(string, 'white', *args, **kwargs)
 
 
-def greenprint(string):
-    cprint(string, 'green')
+def greenprint(string, *args, **kwargs):
+    cprint(string, 'green', *args, **kwargs)
 
 
-def redprint(string):
-    cprint(string, 'red')
+def redprint(string, *args, **kwargs):
+    cprint(string, 'red', *args, **kwargs)
 
 
-def yellowprint(string):
-    cprint(string, 'yellow')
+def yellowprint(string, *args, **kwargs):
+    cprint(string, 'yellow', *args, **kwargs)
 
 
-def brightyellowprint(string):
-    cprint(string, 'bright yellow')
+def brightyellowprint(string, *args, **kwargs):
+    cprint(string, 'bright yellow', *args, **kwargs)
 
 
 def brightredprint(string, *args, **kwargs):
     cprint(string, 'bright red', *args, **kwargs)
 
 
-def brightwhiteprint(string):
-    cprint(string, 'bright white')
+def brightwhiteprint(string, *args, **kwargs):
+    cprint(string, 'bright white', *args, **kwargs)

@@ -7,7 +7,7 @@ UNSPECIFIED = object()
 
 def cachedprop(_fn=None) -> 'PropCache':
     @functools.wraps(_fn)
-    def wrap(fn) -> PropCache:
+    def wrap(fn) -> 'PropCache':
         ret = PropCache(fn)
         return ret
     
@@ -21,7 +21,32 @@ class PropCache(property):
                  fset: Optional[Callable[[Any, Any], None]] = None,
                  fdel: Optional[Callable[[Any], None]] = None,
                  doc: Optional[str] = None) -> None:
-        """fget: function TrichDay.sleep"""
+        """When :meth:`__get__` is called for the:
+        
+        First call:
+        ----------
+        
+        - `_try_get_from_cache()`, is called, which:
+          
+          - creates `obj._cache`
+          - sets `obj._cache[self._propname]=UNSPECIFIED`
+          - returns `UNSPECIFIED`
+        - then, `_calculate_value()` is called, which:
+        
+          - calls `super().__get__()` which is the function's content
+          - sets `obj._cache[self._propname]`
+          - returns calculated value
+          
+        Following calls:
+        ---------------
+        
+        - `_try_get_from_cache(), is called, which:
+          
+          - returns whatever that was inside `obj._cache[self._propname]`
+          - which is neccessarily not `UNSPECIFIED`
+        
+        """
+        # fget: function TrichDay.sleep
         
         self._propname = fget.__name__
         super().__init__(fget, fset, fdel, doc)

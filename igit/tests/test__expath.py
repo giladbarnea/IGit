@@ -4,14 +4,15 @@ from pathlib import Path
 
 import pytest
 
+import igit
 from igit.expath import ExPath
 from igit.regex import REGEX_CHAR
 from igit.tests.common import get_permutations_in_size_range, has_letters_and_punc, path_regexes, mixed_suffixes
 from igit.util import misc
+import doctest
 
 giladdirstr = os.getenv('HOME')  # /home/gilad
 HOME_EXPATH = ExPath('/home')
-
 GILAD_EXPATH = ExPath(giladdirstr)
 
 
@@ -337,6 +338,13 @@ class Test__ExPath:
                                  'file',
                                  'home/gilad/.local/*', ]:
                     assert not ExPath(nosuffix).has_file_suffix()
+    
+    class splitting:
+        # pytest -svv -c igit/tests/pytest.ini igit/tests/test__expath.py::Test__ExPath::splitting
+        def test__split_prefix(self):
+            res = doctest.testmod(igit.expath,
+                                  optionflags=doctest.ELLIPSIS)
+            assert res.failed == 0
 
 
 @pytest.mark.skip

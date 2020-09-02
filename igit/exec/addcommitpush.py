@@ -41,13 +41,20 @@ def _handle_splits(promptstr, main_file: ExPath, cwd, split_prefix, dry_run: boo
 # called by handle_large_files()
 def _split_file(abspath: ExPath, cwd, dry_run: bool):
     # file.zip → file_zip_
-    split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
-    
-    splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
-    if splits:
+    # split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
+    # splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
+    # if splits:
+    try:
+        splits = abspath.split()
+    except FileExistsError as e:
         misc.whiteprint('found pre-existing splits')
+        splits = abspath.getsplits()
         biggest_split = max(map(lambda split: split.lstat().st_size / 1000000, splits))
-        _handle_splits(f'found {len(splits)} pre-existing splits, biggest is {biggest_split}MB.', abspath, cwd, split_prefix, dry_run)
+        _handle_splits(f'found {len(splits)} pre-existing splits, biggest is {biggest_split}MB.',
+                       abspath,
+                       cwd,
+                       split_prefix,
+                       dry_run)
         return
     
     misc.whiteprint('no pre-existing splits found. splitting...')

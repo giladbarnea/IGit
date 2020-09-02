@@ -1,20 +1,38 @@
+import os
 import re
 from pathlib import PosixPath, Path
-from typing import Any, Tuple, Generator, Union
+from typing import Any, Tuple, Generator, Union, List
 
-from igit import regex
+from igit import regex, shell
 # from igit.util.path import has_file_suffix
 from igit.regex import has_glob, is_only_glob
+from igit_debug.loggr import Loggr
+from igit.cache import cachedprop
+
+logger = Loggr()
 
 
 # TODO: what happens if multi inherit str?
 class ExPath(PosixPath):
+    splits: List['ExPath']
     
     def __new__(cls, *paths, **kwargs):
-        
         if not paths or any(not seg for seg in paths):
             raise ValueError(f"ExPath.__new__(paths): bad paths: {paths}")
         return super().__new__(cls, *paths, **kwargs)
+    
+    def __init__(self, *pathsegments: str) -> None:
+        """
+        >>> ExPath('file')._split_prefix
+        'file_'
+        >>> ExPath('file.txt')._split_prefix
+        'file_txt_'
+        >>> ExPath('file.foo.bar')._split_prefix
+        'file_foo_bar_'
+        """
+        super().__init__()
+        # file.zip → file_zip_
+        self._split_prefix: str = self.deepstem + ''.join([s.replace('.', '_') for s in self.suffixes]) + '_'
     
     def __contains__(self, other):
         return other in str(self)
@@ -52,6 +70,33 @@ class ExPath(PosixPath):
     def __hash__(self) -> int:
         return super().__hash__()
     
+    def split(self) -> List['ExPath']:
+        existing_splits = self.getsplits()
+        if existing_splits:
+            raise FileExistsError(f"ExPath.split() was called for {self}, but existing_splits were found:\n\t{existing_splits}")
+        shell.run(f'split -d --bytes 49000KB "{self}" "{self._split_prefix}"')
+    
+    def unsplit(self, verify_integrity=False):
+        existing_splits = self.getsplits()
+        if not existing_splits:
+            raise FileNotFoundError(f"ExPath.unsplit() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
+        if verify_integrity:
+            # todo: this doesn't work with shell.run for some reason
+            os.system(f'cat "{self._split_prefix}"* > /tmp/joined')
+    
+    def getsplits(self) -> List['ExPath']:
+        # TODO: make sure self.parent.glob works if self is relative
+        return list(self.parent.glob(f'"{self._split_prefix}"*'))
+    
+    @property
+    def deepstem(self) -> str:
+        """The final path component, minus ALL suffixes.
+        >>> expaths = [ExPath('file'), ExPath('file.txt'), ExPath('file.txt.ignore')]
+        >>> all(expath.deepstem == 'file' for expath in expaths)
+        True
+        """
+        return str(self).replace(''.join(self.suffixes), '')
+    
     def has_glob(self) -> bool:
         return has_glob(str(self))
     
@@ -81,7 +126,7 @@ class ExPath(PosixPath):
         return '/'.join(parts_before_glob), globpart, '/'.join(parts_after_glob)
     
     def glob(self, pattern: str = None) -> Generator['ExPath', None, None]:
-        """Like vanilla `.glob()` but supports passing no arguments if self contains a globbing pattern.
+        """Like vanilla `.glob()` but supports passing no arguments if `self` contains a globbing pattern.
         Yields dirs and files.
         >>> ExPath('/usr/*').glob()
         <generator object ExPath.glob at 0x...>

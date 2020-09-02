@@ -10,7 +10,7 @@ from typing import Sized, List, Tuple, Iterable
 from igit_debug import ExcHandler
 
 from igit.util import misc
-from igit.util.cache import memoize
+from igit.cache import memoize
 from igit.regex import REGEX_CHAR
 
 DOT_OR_QUOTE: re.Pattern = re.compile(r'[.\'"]+')

@@ -76,9 +76,8 @@ def run(*cmds: str,
                 brightyellowprint(stderr)
         
         except Exception as e:
-            print(colors.brightred(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseexc is {raiseexc}.'))
+            misc.brightredprint(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseexc is {raiseexc}.', 'bold')
             hdlr = ExcHandler(e)
-            
             if raiseexc:
                 if raiseexc is True:
                     print(hdlr.full())

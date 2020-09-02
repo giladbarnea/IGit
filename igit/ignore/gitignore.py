@@ -5,7 +5,7 @@ from igit_debug.loggr import Loggr
 from more_termcolor import colors
 
 from igit import prompt, shell
-from igit.util.cache import memoize
+from igit.cache import memoize
 from igit.expath import ExPath
 
 logger = Loggr(__name__)
