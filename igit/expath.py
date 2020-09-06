@@ -1,7 +1,7 @@
 import os
 import re
 from pathlib import PosixPath, Path
-from typing import Any, Tuple, Generator, Union, List
+from typing import Any, Tuple, Generator, Union, List, Literal
 
 from igit import regex, shell
 # from igit.util.path import has_file_suffix
@@ -70,19 +70,36 @@ class ExPath(PosixPath):
     def __hash__(self) -> int:
         return super().__hash__()
     
-    def split(self) -> List['ExPath']:
+    def splits_integrity_ok(self) -> bool:
+        """Removes the joined file after joining only integrity is ok (for debugging)"""
+        existing_splits = self.getsplits()
+        if not existing_splits:
+            raise FileNotFoundError(f"ExPath.verify_splits_integrity() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
+        # todo: this doesn't work with shell.run for some reason
+        os.system(f'cat "{self._split_prefix}"* > /tmp/joined')
+        ok = bool(shell.run(f'diff /tmp/joined "{self}"'))
+        if ok:
+            shell.run('rm /tmp/joined')
+        
+        return ok
+    
+    def split(self, verify_integrity=False) -> List['ExPath']:
+        """If verify_integrity is `True`, and splits are bad, raises OSError"""
         existing_splits = self.getsplits()
         if existing_splits:
             raise FileExistsError(f"ExPath.split() was called for {self}, but existing_splits were found:\n\t{existing_splits}")
         shell.run(f'split -d --bytes 49000KB "{self}" "{self._split_prefix}"')
+        if not verify_integrity:
+            return existing_splits
+        splits_ok = self.splits_integrity_ok()
+        if not splits_ok:
+            raise OSError(f"ExPath.split() was called for {self} with verify_integrity=True. splits are bad.")
+        return existing_splits
     
-    def unsplit(self, verify_integrity=False):
+    def unsplit(self):
         existing_splits = self.getsplits()
         if not existing_splits:
             raise FileNotFoundError(f"ExPath.unsplit() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
-        if verify_integrity:
-            # todo: this doesn't work with shell.run for some reason
-            os.system(f'cat "{self._split_prefix}"* > /tmp/joined')
     
     def getsplits(self) -> List['ExPath']:
         # TODO: make sure self.parent.glob works if self is relative
@@ -96,6 +113,22 @@ class ExPath(PosixPath):
         True
         """
         return str(self).replace(''.join(self.suffixes), '')
+    
+    def trash(self):
+        shell.run(f'gio trash "{self}"')
+    
+    def size(self, unit: Union[Literal['kb'], Literal['mb'], Literal['gb']] = None):
+        """By default, returns size in bytes."""
+        syze = self.lstat().st_size
+        if not unit:
+            return syze
+        if unit == 'kb':
+            return syze / 1000
+        if unit == 'mb':
+            return syze / 1000000
+        if unit == 'gb':
+            return syze / 1000000000
+        raise ValueError(f"ExPath.size(unit={repr(unit)}), bad unit. self is {self}. accepting only kb, mb or gb (or None)")
     
     def has_glob(self) -> bool:
         return has_glob(str(self))

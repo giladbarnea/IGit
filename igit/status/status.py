@@ -2,10 +2,11 @@ import os
 
 from typing import Tuple, List, Dict, overload, Union
 
+from igit.cache import cachedprop
 from igit.util.misc import darkprint
 # from igit.util.path import has_file_suffix
 from igit.expath import ExPath
-from igit.util import cachedprop, misc
+from igit.util import misc
 from igit import prompt, shell, search, regex
 from igit.search import search_and_prompt
 from more_termcolor import colors

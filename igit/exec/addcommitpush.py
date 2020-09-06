@@ -15,56 +15,45 @@ from igit.util.clickextensions import unrequired_opt
 from igit.expath import ExPath
 
 
-def _handle_splits(promptstr, main_file: ExPath, cwd, split_prefix, dry_run: bool):
-    """Handles the situation having the main file and existing splits (just created or pre-existed).
-    Verifies split integrity and prompts whether to ignore or trash main file"""
-    if prompt.confirm("temporarily join splits and verify integrity against main file?"):
-        os.system(f'cat "{split_prefix}"* > /tmp/joined')
-        if shell.run(f'diff /tmp/joined "{main_file}"'):
-            prompt.generic(f"splits of '{main_file}' aren't good", flowopts=('quit', 'debug'))
-        misc.greenprint('splits are good')
-        shell.run('rm /tmp/joined')
-    
-    key, answer = prompt.action(promptstr, 'ignore main file',
+def _handle_already_split_file(promptstr, main_file: ExPath, cwd, dry_run: bool):
+    key, answer = prompt.action(promptstr,
+                                'ignore main file',
                                 'move main file to trash://',
                                 flowopts='quit')
     if key == 'i':
         ignore(main_file.relative_to(cwd), dry_run=dry_run)
-    else:
-        # key == 'm'
-        if dry_run:
-            misc.whiteprint('dry run, not trashing file')
-        else:
-            shell.run(f'gio trash "{main_file}"')
+        return
+    # key == 'm' for move to trash
+    if dry_run:
+        misc.whiteprint('dry run, not trashing file')
+        return
+    main_file.trash()
 
 
 # called by handle_large_files()
 def _split_file(abspath: ExPath, cwd, dry_run: bool):
-    # file.zip → file_zip_
-    # split_prefix = abspath.with_name(abspath.stem + f'_{abspath.suffix[1:]}_').with_suffix('')
-    # splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
-    # if splits:
     try:
-        splits = abspath.split()
+        splits = abspath.split(verify_integrity=True)
     except FileExistsError as e:
+        # splits already existed
         misc.whiteprint('found pre-existing splits')
         splits = abspath.getsplits()
-        biggest_split = max(map(lambda split: split.lstat().st_size / 1000000, splits))
-        _handle_splits(f'found {len(splits)} pre-existing splits, biggest is {biggest_split}MB.',
-                       abspath,
-                       cwd,
-                       split_prefix,
-                       dry_run)
+        splits_ok = abspath.splits_integrity_ok()
+        if not splits_ok:
+            prompt.generic(f"splits of '{abspath}' aren't good, joined file at /tmp/joined", flowopts=('quit', 'debug'))
+            return
+        misc.greenprint('splits are good')
+        
+        biggest_split = max([split.size('mb') for split in splits])
+        promptstr = f'found {len(splits)} pre-existing splits, biggest is {biggest_split}MB.'
+        _handle_already_split_file(promptstr, abspath, cwd, dry_run=dry_run)
         return
-    
-    misc.whiteprint('no pre-existing splits found. splitting...')
-    if dry_run:
-        misc.whiteprint('dry run, not actually splitting. continuing to next file')
-        return
-    shell.run(f'split -d --bytes 49000KB "{abspath}" "{split_prefix}"')
-    
-    splits = list(abspath.parent.glob(f'"{split_prefix.stem}"*'))
-    _handle_splits(f'created {len(splits)} splits.', abspath, cwd, split_prefix, dry_run)
+    except OSError:
+        prompt.generic(f"Just split {abspath} but splits aren't good, joined file at /tmp/joined", flowopts=('quit', 'debug'))
+    else:
+        biggest_split = max([split.size('mb') for split in splits])
+        promptstr = f'no pre-existing splits found. split file to {len(splits)} good splits, biggest is {biggest_split}MB.'
+        _handle_already_split_file(promptstr, abspath, cwd, dry_run=dry_run)
 
 
 # called by get_large_files_from_status() and recursively
@@ -75,7 +64,7 @@ def _get_large_files_in_dir(path: ExPath) -> Dict[ExPath, float]:
             misc.yellowprint(f'does not exist: {repr(p)}')
             continue
         if p.is_file():
-            mb = p.lstat().st_size / 1000000
+            mb = p.size('mb')
             if mb >= 50:
                 large_subfiles[p] = mb
         else:
@@ -129,7 +118,7 @@ def get_large_files_from_status(cwd, status: Status) -> Dict[ExPath, float]:
                 large_subfiles = _get_large_files_in_dir(abspath)
                 largefiles.update(large_subfiles)
             else:
-                mb = abspath.lstat().st_size / 1000000
+                mb = abspath.size('mb')
         else:
             misc.yellowprint(f'does not exist: {repr(abspath)}')
         if mb >= 50:

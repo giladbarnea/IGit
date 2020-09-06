@@ -3,7 +3,8 @@ from typing import Dict, Optional, NoReturn, Union, overload, List
 
 from igit_debug.investigate import loginout
 
-from igit.util import cachedprop, misc
+from igit.cache import cachedprop
+from igit.util import misc
 from igit import shell, regex
 from igit.search import search_and_prompt
 
