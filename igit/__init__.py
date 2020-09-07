@@ -29,11 +29,7 @@ def extend_print():
     logger.debug('finished extending print')
 
 
-extend_print()
-
-IGIT_MODE = os.environ.get('IGIT_MODE', '')
-if IGIT_MODE == 'DEBUG':
-    
+def do_debug_patching():
     import sys
     
     from IPython.core import ultratb
@@ -42,9 +38,10 @@ if IGIT_MODE == 'DEBUG':
     from igit.util.misc import is_pycharm
     
     # TODO: learn how to call pdb on exception just using ipdb, not relying on ipython
+    #  (currently, whenever calling ipdb, it uses ipython → startup scripts → igit)
     #  this will enable having env vars IGIT_CALL_PDB=TRUE and IGIT_MODE="" and still
     #  calling pdb on exception (right now they're dependent)
-    IGIT_CALL_PDB = bool(os.environ.get('IGIT_CALL_PDB', ''))
+    IGIT_CALL_PDB = eval(os.environ.get('IGIT_CALL_PDB', ''))
     IGIT_EXCEPTHOOK = os.environ.get('IGIT_EXCEPTHOOK', '')
     using_pycharm = is_pycharm()
     actually_call_pdb = IGIT_CALL_PDB and not using_pycharm
@@ -60,3 +57,10 @@ if IGIT_MODE == 'DEBUG':
     
     if actually_call_pdb:
         sys.breakpointhook = partial(set_trace, context=30)
+
+
+extend_print()
+
+IGIT_MODE = os.environ.get('IGIT_MODE', '')
+if IGIT_MODE == 'DEBUG':
+    do_debug_patching()
