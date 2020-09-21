@@ -1,13 +1,12 @@
 import os
 import re
-from pathlib import PosixPath, Path
-from typing import Any, Tuple, Generator, Union, List, Literal
+from pathlib import PosixPath, Path, PurePath
+from typing import Any, Tuple, Generator, Union, List, Literal, NoReturn
 
 from igit import regex, shell
 # from igit.util.path import has_file_suffix
 from igit.regex import has_glob, is_only_glob
 from igit_debug.loggr import Loggr
-from igit.cache import cachedprop
 
 logger = Loggr()
 
@@ -23,16 +22,20 @@ class ExPath(PosixPath):
     
     def __init__(self, *pathsegments: str) -> None:
         """
-        >>> ExPath('file')._split_prefix
-        'file_'
-        >>> ExPath('file.txt')._split_prefix
-        'file_txt_'
-        >>> ExPath('file.foo.bar')._split_prefix
-        'file_foo_bar_'
+        >>> ExPath(__file__)._split_prefix
+        'expath_py_'
+        >>> ExPath('/does/not.exist')._split_prefix
+        Traceback (most recent call last):
+            ...
+        AttributeError
         """
         super().__init__()
-        # file.zip → file_zip_
-        self._split_prefix: str = self.deepstem + ''.join([s.replace('.', '_') for s in self.suffixes]) + '_'
+        
+        if self.is_file():
+            # file.zip → file_zip_
+            # note: this means it has to exist
+            _split_prefix = self.deepstem + ''.join([s.replace('.', '_') for s in self.suffixes]) + '_'
+            self._split_prefix: str = _split_prefix
     
     def __contains__(self, other):
         return other in str(self)
@@ -70,18 +73,31 @@ class ExPath(PosixPath):
     def __hash__(self) -> int:
         return super().__hash__()
     
+    def __truediv__(self: 'ExPath', key: Union[str, PurePath]) -> 'ExPath':
+        """Both __truediv__ and __rtruediv__ are necessary because super() doesn't really
+        (at all?) call __init__, so returning value is ExPath but doesn't have _split_prefix attr"""
+        divved = super().__truediv__(key)
+        return ExPath(divved)
+    
+    def __rtruediv__(self: 'ExPath', key: Union[str, PurePath]) -> 'ExPath':
+        rdivved = super().__rtruediv__(key)
+        return ExPath(rdivved)
+    
     def splits_integrity_ok(self) -> bool:
-        """Removes the joined file after joining only integrity is ok (for debugging)"""
+        """Removes the joined file after joining only if integrity is ok."""
         existing_splits = self.getsplits()
         if not existing_splits:
             raise FileNotFoundError(f"ExPath.verify_splits_integrity() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
         # todo: this doesn't work with shell.run for some reason
         os.system(f'cat "{self._split_prefix}"* > /tmp/joined')
-        ok = bool(shell.run(f'diff /tmp/joined "{self}"'))
-        if ok:
-            shell.run('rm /tmp/joined')
-        
-        return ok
+        try:
+            # diff returns 0 only if there's no difference
+            shell.run(f'diff /tmp/joined "{self}"', raise_on_non_zero='short')
+        except ChildProcessError:
+            return False
+        else:
+            shell.run('rm /tmp/joined', raise_on_non_zero=True)
+            return True
     
     def split(self, verify_integrity=False) -> List['ExPath']:
         """If verify_integrity is `True`, and splits are bad, raises OSError"""
@@ -89,21 +105,23 @@ class ExPath(PosixPath):
         if existing_splits:
             raise FileExistsError(f"ExPath.split() was called for {self}, but existing_splits were found:\n\t{existing_splits}")
         shell.run(f'split -d --bytes 49000KB "{self}" "{self._split_prefix}"')
+        splits = self.getsplits()
         if not verify_integrity:
-            return existing_splits
+            return splits
         splits_ok = self.splits_integrity_ok()
         if not splits_ok:
             raise OSError(f"ExPath.split() was called for {self} with verify_integrity=True. splits are bad.")
-        return existing_splits
+        return splits
     
-    def unsplit(self):
+    def unsplit(self) -> NoReturn:
         existing_splits = self.getsplits()
         if not existing_splits:
-            raise FileNotFoundError(f"ExPath.unsplit() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
+            raise FileNotFoundError(f"{self}.unsplit() was called for {self}, but existing_splits were not found by split prefix: {self._split_prefix}")
     
     def getsplits(self) -> List['ExPath']:
         # TODO: make sure self.parent.glob works if self is relative
-        return list(self.parent.glob(f'"{self._split_prefix}"*'))
+        # looks like it's fine even when stem has spaces (no need to quote)
+        return list(self.parent.glob(self._split_prefix + "*"))
     
     @property
     def deepstem(self) -> str:
@@ -111,8 +129,18 @@ class ExPath(PosixPath):
         >>> expaths = [ExPath('file'), ExPath('file.txt'), ExPath('file.txt.ignore')]
         >>> all(expath.deepstem == 'file' for expath in expaths)
         True
+        >>> ExPath('/home/gilad').deepstem
+        'gilad'
+        >>> ExPath('/home/gilad').deepstem == Path('/home/gilad').stem
+        True
+        >>> ExPath('/home/gilad/foo.bar.baz').deepstem
+        'foo'
         """
-        return str(self).replace(''.join(self.suffixes), '')
+        
+        stem = self.stem
+        for suffix in self.suffixes:
+            stem = stem.replace(suffix, '')
+        return stem
     
     def trash(self):
         shell.run(f'gio trash "{self}"')
@@ -270,6 +298,7 @@ class ExPath(PosixPath):
         if super().is_file():
             return True
         if not self.exists():
+            # todo: maybe this is redundant because super() already checks whether exists?
             return False
         # parts_before_glob, glob_part, parts_after_glob = self._partition_parts_by_glob()
         

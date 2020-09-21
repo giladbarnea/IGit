@@ -61,7 +61,7 @@ def _get_large_files_in_dir(path: ExPath) -> Dict[ExPath, float]:
     large_subfiles = {}
     for p in path.iterdir():
         if not p.exists():
-            misc.yellowprint(f'does not exist: {repr(p)}')
+            misc.yellowprint(f'_get_large_files_in_dir() | does not exist: {repr(p)}')
             continue
         if p.is_file():
             mb = p.size('mb')
@@ -111,7 +111,13 @@ def get_large_files_from_status(cwd, status: Status) -> Dict[ExPath, float]:
             continue
         
         # TODO: check if already in gitignore and just not removed from cache
+        if any(qu in str(cwd) or qu in str(f) for qu in ['"', "'"]):
+            misc.yellowprint(f'get_large_files_from_status() | found quote in `cwd` or `f`')
+            breakpoint()
         abspath = cwd / f
+        if any(qu in str(abspath) for qu in ['"', "'"]):
+            misc.yellowprint(f'get_large_files_from_status() | found quote in `abspath`: probably a bug in ExPath __div__')
+            breakpoint()
         mb = 0
         if abspath.exists():
             if abspath.is_dir():
@@ -120,7 +126,10 @@ def get_large_files_from_status(cwd, status: Status) -> Dict[ExPath, float]:
             else:
                 mb = abspath.size('mb')
         else:
-            misc.yellowprint(f'does not exist: {repr(abspath)}')
+            # todo: it looks like this:
+            #  does not exist: ExPath('/home/gilad/".config/JetBrains/PyCharm2020.2/keymaps/Visual Studio copy.xml"')
+            #  maybe status.files quotes if whitespace in path?
+            misc.yellowprint(f'get_large_files_from_status() | does not exist: {repr(abspath)}')
         if mb >= 50:
             largefiles[abspath] = mb
     return largefiles

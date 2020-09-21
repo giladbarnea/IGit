@@ -3,16 +3,22 @@ import subprocess as sp
 from typing import Union, List, Literal
 
 from igit_debug import ExcHandler
+from igit_debug.loggr import Loggr
 from more_termcolor import colors
 
 from igit.util import misc
 from igit.util.misc import yellowprint, brightyellowprint
 
+logger = Loggr()
+
+RaiseArg = Union[bool, Literal['short', 'summary', 'full']]
+
 
 def run(*cmds: str,
         printout=True,
         printcmd=True,
-        raiseexc: Union[bool, Literal['short', 'summary', 'full']] = True,
+        raiseexc: RaiseArg = True,
+        raise_on_non_zero: RaiseArg = False,
         input: bytes = None,
         stdout=sp.PIPE,
         stderr=sp.PIPE):
@@ -31,6 +37,11 @@ def run(*cmds: str,
       If True, actually raises the exception, but prints ExcHandler beforehand.
       Value can be a bool or either 'short', 'summary', 'full' to control the output of ExcHandler. True is equiv to 'full'.
       Default True.
+    :param raise_on_non_zero: If False, completely ignores returncode.
+      If True, and returncode != zero, raises ChildProcessError, but prints ExcHandler beforehand.
+      Value can be a bool or either 'short', 'summary', 'full' to control the output of ExcHandler. True is equiv to 'full'.
+      Default False.
+      Note: stderr may have content but returncode is 0, and vice-versa.
     :param bytes input: Default None.
     :param int stdout: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
     :param int stderr: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
@@ -49,6 +60,7 @@ def run(*cmds: str,
     """
     # TODO: poll every second for long processes, like git clone
     outs = []
+    
     for cmd in cmds:
         if printcmd:
             print(colors.brightblack(f'\n{cmd}', "italic"))
@@ -66,6 +78,7 @@ def run(*cmds: str,
                 runargs['input'] = input
             
             proc: sp.CompletedProcess = sp.run(shlex.split(cmd), **runargs)
+            
             if proc.stdout:
                 out = proc.stdout.decode().strip()
             else:
@@ -74,21 +87,15 @@ def run(*cmds: str,
             if proc.stderr:
                 stderr = proc.stderr.decode().strip()
                 brightyellowprint(stderr)
+            
+            # keep after stderr handling so stderr is printed before raise
+            if raise_on_non_zero and proc.returncode != 0:
+                _handle_exception(ChildProcessError(f"shell.run() | The following command returned with code {proc.returncode}:\n{cmd}"),
+                                  raise_on_non_zero,
+                                  msg=f'returncode: {proc.returncode}')
         
         except Exception as e:
-            misc.brightredprint(f'FAILED: `{cmd}`\n\tcaught a {e.__class__.__name__}. raiseexc is {raiseexc}.', 'bold')
-            hdlr = ExcHandler(e)
-            if raiseexc:
-                if raiseexc is True:
-                    print(hdlr.full())
-                else:
-                    trace_fn = getattr(hdlr, raiseexc, None)
-                    if trace_fn is None:
-                        brightyellowprint(f'ExcHandler doesnt have fn: {raiseexc}. defaulting to `full()`')
-                        trace_fn = getattr(hdlr, 'full')
-                    print(trace_fn())
-                raise e
-            print(hdlr.summary())
+            _handle_exception(e, raiseexc, msg=f'FAILED: `{cmd}`\n\t{e.__class__.__name__}')
         else:
             if out:
                 if printout:
@@ -98,6 +105,22 @@ def run(*cmds: str,
         return outs[0] if len(outs) == 1 else outs
     
     return ''
+
+
+def _handle_exception(e: Exception, raise_arg: RaiseArg, msg: str):
+    misc.brightredprint(msg, 'bold')
+    hdlr = ExcHandler(e)
+    if raise_arg:
+        if raise_arg is True:
+            print(hdlr.full())
+        else:
+            get_trace_fn = getattr(hdlr, raise_arg, None)
+            if get_trace_fn is None:
+                brightyellowprint(f'ExcHandler doesnt have fn: {raise_arg}. defaulting to `full()`')
+                get_trace_fn = getattr(hdlr, 'full')
+            print(get_trace_fn())
+        raise e
+    print(hdlr.summary())
 
 
 def runquiet(*cmds: str, raiseexc=True,
