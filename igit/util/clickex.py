@@ -1,6 +1,6 @@
 import click
 import typing
-import functools as ft
+# import functools as ft
 
 
 def option(*param_decls, **attrs):

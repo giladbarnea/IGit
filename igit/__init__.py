@@ -1,9 +1,17 @@
 import os
 from functools import partial
 
+from time import perf_counter
+
+ts0 = perf_counter()
+
 from igit_debug.loggr import Loggr
 
+ts1 = perf_counter()
+print(f'igit.__init__.py | importing Loggr took {round((ts1 - ts0) * 1000, 2)}ms')  # 54.18ms because of import logbook
 logger = Loggr()
+ts2 = perf_counter()
+print(f'igit.__init__.py | logger=Loggr() took {round((ts2 - ts1) * 1000, 2)}ms')
 
 
 def extend_print():
@@ -59,8 +67,15 @@ def do_debug_patching():
         sys.breakpointhook = partial(set_trace, context=30)
 
 
+ts3 = perf_counter()
 extend_print()
+ts4 = perf_counter()
+print(f'igit.__init__.py | extend_print() took {round((ts4 - ts3) * 1000, 2)}ms')
 
 IGIT_MODE = os.environ.get('IGIT_MODE', '')
+logger.debug(f'IGIT_MODE: {repr(IGIT_MODE)}')
 if IGIT_MODE == 'DEBUG':
+    ts5 = perf_counter()
     do_debug_patching()
+    ts6 = perf_counter()
+    print(f'igit.__init__.py | do_debug_patching() took {round((ts6 - ts5) * 1000, 2)}ms')

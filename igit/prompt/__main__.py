@@ -2,7 +2,7 @@
 import sys
 import click
 from typing import Tuple
-from igit.util.clickextensions import unrequired_opt
+from igit.util.clickex import unrequired_opt
 
 
 @click.command()

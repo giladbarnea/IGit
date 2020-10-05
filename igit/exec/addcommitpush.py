@@ -9,7 +9,7 @@ from igit import git, prompt, shell
 from igit.exec.ignore import main as ignore
 from igit.status import Status
 from igit.util import misc
-from igit.util.clickextensions import unrequired_opt
+from igit.util.clickex import unrequired_opt
 
 # called by _split_file()
 from igit.expath import ExPath

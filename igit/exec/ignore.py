@@ -7,7 +7,7 @@ import click
 from igit import prompt
 from igit.ignore import Gitignore
 from igit.status import Status
-from igit.util.clickextensions import unrequired_opt
+from igit.util.clickex import unrequired_opt
 from igit.util.misc import darkprint
 from igit.expath import ExPath, ExPathOrStr
 from more_termcolor import colors
