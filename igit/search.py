@@ -8,7 +8,6 @@ from igit_debug.loggr import Loggr
 
 from igit import prompt, regex
 from igit.prompt.item import Flow
-from igit.util.misc import darkprint, brightyellowprint
 
 logger = Loggr(__name__)
 SearchCriteria = Literal['substring', 'equals', 'startswith', 'endswith']
@@ -73,7 +72,7 @@ class Matches(Generic[T]):
         
         # score is worst than worst: don't let in
     
-    def best(self) -> List[T]:
+    def best(self) -> Optional[List[T]]:
         if not self.matches:
             logger.debug(f'no self.matches → returning None')
             return None
@@ -101,27 +100,29 @@ def nearest(keyword: str, collection: List[T], cutoff=2) -> T:
     return best
 
 
-def fuzzy(keyword: str, collection: Collection[T], cutoff=2) -> Optional[Matches[T]]:
+def fuzzy(keyword: str, collection: Collection[T], cutoff=2) -> Matches[T]:
     """Returns a `Matches` instance, or None if nothing matched.
     Doesn't prompt.
     """
+    if not keyword or re.fullmatch(r'[\'"]+', keyword):  # only quotes
+        raise ValueError(f"fuzzy(keyword={repr(keyword)}): bad keyword")
     if not collection or not any(item for item in collection):
-        raise ValueError(f"fuzzy('{keyword}', collection = {repr(collection)}): no collection")
+        raise ValueError(f"fuzzy({repr(keyword)}, collection = {repr(collection)}): no collection")
     near_matches = Matches(maxsize=5)
     far_matches = Matches(maxsize=5)
     max_l_dist = min(len(keyword) - 1, 17)
     # TODO: sometimes cutoff == max_l_dist
     coll_len = len(collection)
-    darkprint(f'fuzzy({repr(keyword)}, collection ({coll_len}), cutoff: {cutoff}, max_l_dist: {max_l_dist})')
+    logger.debug(f'fuzzy({repr(keyword)}, collection ({coll_len}), cutoff: {cutoff}, max_l_dist: {max_l_dist})')
     printed_progress = -1
     for i, item in enumerate(collection):
         progress = round(i / coll_len, 1)
         if progress > printed_progress:
-            darkprint(f'{progress * 100}% (near_matches: {near_matches.count}, far_matches: {far_matches.count})')
+            logger.debug(f'{progress * 100}% (near_matches: {near_matches.count}, far_matches: {far_matches.count})')
             if near_matches.count ^ far_matches.count:
                 # exactly one is Truthy
                 coll = next(filter(bool, [near_matches, far_matches]))
-                darkprint(repr(coll))
+                logger.debug(repr(coll))
             printed_progress = progress
         matches = find_near_matches(keyword, item, max_l_dist=max_l_dist)
         # don't `continue` even if matches is empty
@@ -155,11 +156,13 @@ def fuzzy(keyword: str, collection: Collection[T], cutoff=2) -> Optional[Matches
         # * good (below cutoff)
         near_matches.append(item, score)
     if not near_matches and not far_matches:
-        brightyellowprint(f'fuzzy() no near_matches nor far_matches! collection: {collection}')
-        return None
-    if near_matches:
+        
+        logger.warn(f'GOT NOTHING! no near_matches, no far_matches. returning empty Matches object. collection:', collection)
         return near_matches
-    darkprint(f'fuzzy() → far_matches')
+    if near_matches:
+        logger.debug(f'fuzzy() → near_matches')
+        return near_matches
+    logger.debug(f'fuzzy() → far_matches')
     return far_matches
 
 
@@ -207,10 +210,14 @@ def iter_maybes(keyword: str, collection: Collection[T], *extra_options, criteri
     """Doesn't prompt. Yields three `[matches...], is_last` tuples.
     1st: str method by `criterion`
     2nd: re.search ignoring word separators
-    3rd: fuzzy search (what `nearest()` uses)"""
+    3rd: fuzzy search (what `nearest()` uses directly)"""
     is_maybe = _create_is_maybe_predicate(criterion)
     
+    logger.debug(f'iter_maybes({repr(keyword)}, collection ({len(collection)}), extra_options: ({len(extra_options)}), criterion: {repr(criterion)}), is_maybe: {is_maybe.__name__}')
+    if extra_options:
+        logger.warn(f'got extra_options, ignored because not developed:', extra_options)
     maybes = [item for item in collection if is_maybe(item, keyword)]
+    logger.debug(f'yielding {len(maybes)} maybes that True for `is_maybe(item, keyword)`')
     yield maybes, False
     
     regexp = None
@@ -228,7 +235,13 @@ def iter_maybes(keyword: str, collection: Collection[T], *extra_options, criteri
             if regexp.search(item) and item not in maybes:
                 new_maybes.append(item)
         if new_maybes and new_maybes != maybes:
+            logger.debug(f"regexp isn't None ({regexp}) and searching resulted in different maybes. yielding {len(new_maybes)} new maybes")
             yield new_maybes, False
     
     near_matches = fuzzy(keyword, collection)
-    yield near_matches.best(), True
+    if near_matches:
+        logger.debug(f"last stop: yielding `(near_matches.best(), True)`. near_matches: {repr(near_matches)}")
+        yield near_matches.best(), True
+    else:
+        logger.warn(f"near_matches is None for fuzzy({repr(keyword)}, collection ({len(collection)})). Will throw AttributeError")
+        yield None, True

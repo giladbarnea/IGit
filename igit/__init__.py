@@ -63,10 +63,9 @@ def do_debug_patching():
         from IPython.core import ultratb
         sys.excepthook = ultratb.VerboseTB(include_vars=True, call_pdb=actually_call_pdb)
     elif actually_call_pdb:
-        raise EnvironmentError((f"env mismatch: 'IGIT_EXCEPTHOOK' is bad and 'actually_call_pdb' is True"
-                                f"which means IGIT_CALL_PDB_ON_EXC is True and we're not using pycharm"
-                                'whether to call pdb on exception is depndent on patching excepthook currently'
-                                f'IGIT_EXCEPTHOOK: {repr(IGIT_EXCEPTHOOK)}'))
+        raise EnvironmentError("\n\t".join((f"env mismatch: 'IGIT_EXCEPTHOOK' is bad ({repr(IGIT_EXCEPTHOOK)}) and 'actually_call_pdb' is True",
+                                            f"which means IGIT_CALL_PDB_ON_EXC is True and we're not using pycharm",
+                                            'whether to call pdb on exception is depndent on patching excepthook currently')))
     
     if actually_call_pdb:
         if IGIT_DEBUGGER == 'ipdb':

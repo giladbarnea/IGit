@@ -104,6 +104,9 @@ def memoize(fun):
     @functools.wraps(fun)
     def wrapper(*args, **kwargs):
         key = (fun, args, frozenset(sorted(kwargs.items())))
+        if key in cache:
+            from ipdb import set_trace
+            set_trace(context=30)
         try:
             try:
                 return cache[key]

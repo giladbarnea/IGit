@@ -1,6 +1,6 @@
 import os
 
-from typing import Tuple, List, Dict, overload, Union
+from typing import Tuple, List, Dict, overload, Union, Optional
 
 from igit.cache import cachedprop
 from igit.util.misc import darkprint
@@ -97,9 +97,12 @@ class Status:
     def file_status_map(self) -> Dict[ExPath, str]:
         """A dict of e.g. { ExPath : 'M' }"""
         
-        def _clean_shortstatus(_x) -> Tuple[ExPath, str]:
-            # _file, _status = _x[3:].replace('"', ''), _x[:3].strip()
-            _status, _file = map(str.strip, _x.split(maxsplit=1))
+        def _clean_shortstatus(_statusline: str) -> Optional[Tuple[ExPath, str]]:
+            if _statusline.startswith("#"):
+                
+                return None
+            
+            _status, _file = map(misc.unquote, map(str.strip, _statusline.split(maxsplit=1)))
             if 'R' in _status:
                 if '->' not in _file:
                     raise ValueError(f"'R' in status but '->' not in file. file: {_file}, status: {_status}", locals())
@@ -109,7 +112,7 @@ class Status:
                     raise ValueError(f"'R' not in status but '->' in file. file: {_file}, status: {_status}", locals())
             return ExPath(_file), _status
         
-        return dict([_clean_shortstatus(s) for s in self.status])
+        return dict(filter(bool, (_clean_shortstatus(statusline) for statusline in self.status)))
     
     @cachedprop
     def files(self) -> List[ExPath]:
