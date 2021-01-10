@@ -20,5 +20,5 @@ cl = PyFileConfigLoader('igitconfig.py',
                         )
 cfg = cl.load_config()
 myinst = MyClass(config=cfg)
-print(myinst)
-print(myinst.name)
+print(f"{myinst = }")
+print(f"{myinst.name = }")

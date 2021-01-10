@@ -126,9 +126,6 @@ def get_large_files_from_status(cwd, status: Status) -> Dict[ExPath, float]:
             else:
                 mb = abspath.size('mb')
         else:
-            # todo: it looks like this:
-            #  does not exist: ExPath('/home/gilad/".config/JetBrains/PyCharm2020.2/keymaps/Visual Studio copy.xml"')
-            #  maybe status.files quotes if whitespace in path?
             misc.yellowprint(f'get_large_files_from_status() | does not exist: {repr(abspath)}')
         if mb >= 50:
             largefiles[abspath] = mb
@@ -152,6 +149,15 @@ def main(commitmsg: str, dry_run: bool = False):
     largefiles: Dict[ExPath, float] = get_large_files_from_status(cwd, status)
     if largefiles:
         handle_large_files(cwd, largefiles, dry_run)
+    
+    if '.zsh_history' in status:
+        pwd = misc.getsecret('general')
+        with open('/home/gilad/.zsh_history', errors='backslashreplace') as f:
+            history = f.readlines()
+            for i, line in enumerate(history):
+                if pwd in line:
+                    misc.redprint(f"password found in .zsh_history in line {i}. exiting")
+                    return
     
     if not commitmsg:
         if len(status.files) == 1:

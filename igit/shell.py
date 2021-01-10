@@ -21,9 +21,10 @@ def run(*cmds: str,
         raise_on_non_zero: RaiseArg = False,
         input: bytes = None,
         stdout=sp.PIPE,
-        stderr=sp.PIPE):
+        stderr=sp.PIPE,
+        **runargs):
     """
-    Basically a wrapper to `sp.run(shlex.split(cmd))` that returns stdout(s) strings.
+    Basically a wrapper to `subprocess.run(shlex.split(cmd))` that returns stdout(s) strings.
     
     Always:
      - Prints stderr (if exists) in bright yellow.
@@ -45,6 +46,7 @@ def run(*cmds: str,
     :param bytes input: Default None.
     :param int stdout: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
     :param int stderr: default sp.PIPE (-1). STDOUT is -2, DEVNULL is -3.
+    :param runargs: any other kwargs `subprocess.run` might accept. 'stdout', 'stderr' and 'input' are overwritten
     :return: A string or a list of strings (stripped), depending on whether a single command or many commands were passed.
       If no command had any output, returns an empty str.
     
@@ -65,7 +67,6 @@ def run(*cmds: str,
         if printcmd:
             print(colors.brightblack(f'\n{cmd}', "italic"))
         try:
-            runargs = dict()
             if isinstance(stdout, str):
                 yellowprint(f'shell.run() stdout is str, not passing it: {misc.trim_at(stdout, 60)}')
             else:

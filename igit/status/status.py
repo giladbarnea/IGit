@@ -2,7 +2,7 @@ import os
 
 from typing import Tuple, List, Dict, overload, Union, Optional
 
-from igit.cache import cachedprop
+# from igit.cache import cachedprop
 from igit.util.misc import darkprint
 # from igit.util.path import has_file_suffix
 from igit.expath import ExPath
@@ -58,7 +58,11 @@ class Status:
             raise
         return retrieved
     
-    def get(self, k, default=None, *, noprompt=True):
+    def get(self, k, default=None, *, search=True, noprompt=True):
+        """Looksup in self.files and self.file2stat.
+        :param k: number, slice or str/ExPath. Passes to `self.search()` if failed.
+        See `__getitem__`"""
+
         try:
             idx = misc.safeint(k)
             if idx is not None:
@@ -70,9 +74,10 @@ class Status:
             if isinstance(k, (str, ExPath)):
                 for f in self.files:
                     if f == k:
-                        return self.file_status_map[f]
-            
-            return self.search(k, noprompt=noprompt)
+                        return self.file2stat[f]
+            if search:
+                return self.search(k, noprompt=noprompt)
+            return default
         except (IndexError, KeyError) as e:
             return default
     
@@ -89,11 +94,13 @@ class Status:
         os.system('git status -s')
         return super().__repr__()
     
-    @cachedprop
+    # @cachedprop
+    @property
     def status(self) -> List[str]:
         return shell.runquiet('git status -s').splitlines()
     
-    @cachedprop
+    # @cachedprop
+    @property
     def file_status_map(self) -> Dict[ExPath, str]:
         """A dict of e.g. { ExPath : 'M' }"""
         
@@ -114,12 +121,43 @@ class Status:
         
         return dict(filter(bool, (_clean_shortstatus(statusline) for statusline in self.status)))
     
-    @cachedprop
+    file2stat = file_status_map
+    
+    def untracked(self)->List[ExPath]:
+        untracked = []
+        for file, statuce in self.file2stat.items():
+            if '??' in statuce:
+                untracked.append(file)
+        return untracked
+    
+    def modified(self)->List[ExPath]:
+        modified = []
+        for file, statuce in self.file2stat.items():
+            if 'M' in statuce:
+                modified.append(file)
+        return modified
+    
+    def deleted(self)->List[ExPath]:
+        deleted = []
+        for file, statuce in self.file2stat.items():
+            if 'D' in statuce:
+                deleted.append(file)
+        return deleted
+    
+    def new(self)->List[ExPath]:
+        new = []
+        for file, statuce in self.file2stat.items():
+            if 'A' in statuce:
+                new.append(file)
+        return new
+    
+    # @cachedprop
+    @property
     def files(self) -> List[ExPath]:
         """An ExPath list of files appearing in git status"""
         newfiles = []
         knownfiles = []
-        for file, statuce in self.file_status_map.items():
+        for file, statuce in self.file2stat.items():
             if 'A' in statuce:
                 newfiles.append(file)
             else:
@@ -139,7 +177,7 @@ class Status:
         has_suffix = path.has_file_suffix()
         has_slash = '/' in keyword
         has_regex = regex.has_regex(keyword)
-        darkprint(f'\thas_suffix: {has_suffix}, has_slash: {has_slash}, has_regex: {has_regex}')
+        darkprint(f'\t{has_suffix = }, {has_slash = }, {has_regex = }')
         if has_suffix:
             files = self.files
         else:
